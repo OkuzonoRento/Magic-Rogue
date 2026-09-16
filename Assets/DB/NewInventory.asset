@@ -12,9 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0de46358483b2f74cadc487621a98739, type: 3}
   m_Name: NewInventory
   m_EditorClassIdentifier: Assembly-CSharp::MagicRogue.InventorySO
-  gold: 0
   spellSlots:
+  - {fileID: 11400000, guid: e8cfb20c3332d3b40afd02acb2f11968, type: 2}
   - {fileID: 0}
   - {fileID: 0}
-  - {fileID: 0}
-  mainSlots: []
+  items: []

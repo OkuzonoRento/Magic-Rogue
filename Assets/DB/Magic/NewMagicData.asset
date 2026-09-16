@@ -19,12 +19,19 @@ MonoBehaviour:
   sellPrice: 50
   maxStackSize: 1
   damage: 10
-  cooldown: 1
+  cooldown: 10
   projectileSpeed: 10
   duration: 3
-  spawnType: 2
-  movementType: 0
-  projectilePrefab: {fileID: 0}
+  spawnType: 0
+  movementType: 5
+  projectilePrefab: {fileID: 6239134169312695832, guid: afdc46716a92344439fb07b75c6b2f9a, type: 3}
+  projectileCount: 5
+  spreadAngle: 45
+  maxSplitCount: 2
+  splitSubProjectiles: 4
+  laserDamageInterval: 0.2
+  returnTime: 1
+  returnSpeedMultiplier: 1.5
   castEffectPrefab: {fileID: 0}
   hitEffectPrefab: {fileID: 0}
   castSound: {fileID: 0}

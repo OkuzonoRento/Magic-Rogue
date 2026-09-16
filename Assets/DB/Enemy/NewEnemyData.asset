@@ -15,8 +15,8 @@ MonoBehaviour:
   enemyName: 
   maxHp: 50
   moveSpeed: 3.5
-  sightRange: 8
-  sightAngle: 120
+  sightRange: 7.67
+  sightAngle: 134
   sightRangeColor: {r: 0, g: 1, b: 0, a: 0.2}
   attackPatterns: []
   dropList: []
