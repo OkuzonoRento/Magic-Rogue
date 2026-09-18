@@ -16,17 +16,18 @@ MonoBehaviour:
   itemName: 
   icon: {fileID: 0}
   rarity: 0
+  customWorldModelPrefab: {fileID: 0}
   sellPrice: 50
   maxStackSize: 1
-  damage: 10
-  cooldown: 10
+  damage: 1
+  cooldown: 2
   projectileSpeed: 10
   duration: 3
   spawnType: 0
-  movementType: 5
+  movementType: 1
   projectilePrefab: {fileID: 6239134169312695832, guid: afdc46716a92344439fb07b75c6b2f9a, type: 3}
   projectileCount: 5
-  spreadAngle: 45
+  spreadAngle: 80
   maxSplitCount: 2
   splitSubProjectiles: 4
   laserDamageInterval: 0.2

@@ -14,9 +14,24 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MagicRogue.EnemyData
   enemyName: 
   maxHp: 50
-  moveSpeed: 3.5
+  moveSpeed: 5
   sightRange: 7.67
   sightAngle: 134
   sightRangeColor: {r: 0, g: 1, b: 0, a: 0.2}
-  attackPatterns: []
-  dropList: []
+  attackPatterns:
+  - attackName: 
+    attackType: 0
+    damage: 0
+    attackCooldown: 2
+    animationTriggerName: 
+    minAttackRange: 0
+    maxAttackRange: 5
+    attackAngle: 100
+    impactRadius: 0
+    projectileSpeed: 0
+    telegraphedDelay: 0
+    projectilePrefab: {fileID: 0}
+    attackRangeColor: {r: 1, g: 0.2, b: 0.2, a: 0.25}
+  dropList:
+  - item: {fileID: 11400000, guid: ce1f8fe535a38294d86c026334a53e7b, type: 2}
+    dropChance: 1

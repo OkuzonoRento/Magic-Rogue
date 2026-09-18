@@ -19,10 +19,13 @@ namespace MagicRogue
         private bool isReturning = false;
         private float laserTimer = 0f;
 
+        [Header("Homing Settings")]
+        [SerializeField] private float homingDelay = 0.25f;
+
         public void Setup(MagicData data, Vector3 direction, float damageMultiplier = 1f, int currentSplits = -1, GameObject ignoredEnemy = null)
         {
             magicData = data;
-            moveDirection = new Vector3(direction.x, 0f, direction.z).normalized; // Y軸は固定
+            moveDirection = new Vector3(direction.x, 0f, direction.z).normalized;
             finalDamage = data.damage * damageMultiplier;
             spawnTime = Time.time;
             lastHitEnemy = ignoredEnemy;
@@ -73,15 +76,32 @@ namespace MagicRogue
 
         private void MoveHoming()
         {
-            if (targetEnemy != null)
+            if (Time.time - spawnTime >= homingDelay)
             {
-                Vector3 targetDir = (targetEnemy.position - transform.position);
-                targetDir.y = 0f; // 高さは固定
-                targetDir.Normalize();
+                if (targetEnemy == null || !targetEnemy.gameObject.activeInHierarchy)
+                {
+                    targetEnemy = FindNearestEnemy();
+                }
 
-                moveDirection = Vector3.Slerp(moveDirection, targetDir, Time.deltaTime * 6f);
+                if (targetEnemy != null)
+                {
+                    Vector3 targetDir = (targetEnemy.position - transform.position);
+                    targetDir.y = 0f;
+                    float distanceToTarget = targetDir.magnitude;
+                    targetDir.Normalize();
+
+                    float currentTurnSpeed = (distanceToTarget < 3.0f) ? 25f : 12f;
+
+                    moveDirection = Vector3.Slerp(moveDirection, targetDir, Time.deltaTime * currentTurnSpeed);
+                }
             }
+
             transform.position += moveDirection * magicData.projectileSpeed * Time.deltaTime;
+
+            if (moveDirection != Vector3.zero)
+            {
+                transform.rotation = Quaternion.LookRotation(moveDirection);
+            }
         }
 
         private void MoveBoomerang()
@@ -93,15 +113,13 @@ namespace MagicRogue
 
             if (isReturning && ownerPlayer != null)
             {
-                // 水平面（XZ）上での戻り方向を計算
                 Vector3 targetPos = ownerPlayer.position;
-                targetPos.y = transform.position.y; // Y座標（高さ）を維持
+                targetPos.y = transform.position.y;
 
                 Vector3 returnDir = (targetPos - transform.position).normalized;
                 moveDirection = Vector3.Slerp(moveDirection, returnDir, Time.deltaTime * 8f);
                 transform.position += moveDirection * (magicData.projectileSpeed * magicData.returnSpeedMultiplier) * Time.deltaTime;
 
-                // プレイヤー手元（XZ平面の距離）に戻ったら消滅
                 if (Vector3.Distance(new Vector3(transform.position.x, 0, transform.position.z),
                                      new Vector3(ownerPlayer.position.x, 0, ownerPlayer.position.z)) < 0.8f)
                 {
@@ -116,7 +134,6 @@ namespace MagicRogue
 
         private void UpdateLaser()
         {
-            // プレイヤーに追従してビームの位置と向きを固定
             if (ownerPlayer != null)
             {
                 transform.position = ownerPlayer.position + Vector3.up * 1f;
@@ -157,13 +174,11 @@ namespace MagicRogue
 
         private void OnTriggerEnter(Collider other)
         {
-            // 1. プレイヤー、他の弾、およびタグが設定されていないオブジェクト（床や発射地点の背景）との接触を無視
             if (other.CompareTag("Player") || other.CompareTag("Untagged") || other.GetComponent<MagicProjectile>() != null)
             {
                 return;
             }
 
-            // 2. 敵（Enemy）へのヒット処理
             if (other.CompareTag("Enemy"))
             {
                 if (other.gameObject == lastHitEnemy) return;
@@ -183,7 +198,6 @@ namespace MagicRogue
                     Destroy(gameObject);
                 }
             }
-            // 3. 明確に「Wall」や「Environment」タグが付いた障害物に当たった時のみ消滅させる
             else if (other.CompareTag("Wall") && !magicData.piercesWall && magicData.movementType != MovementType.Laser)
             {
                 PlayHitVFX();
@@ -194,6 +208,12 @@ namespace MagicRogue
         private void ApplyDamage(GameObject enemyObj)
         {
             Debug.Log($"[Hit] {enemyObj.name} に {finalDamage} ダメージ！");
+
+            if (enemyObj.TryGetComponent<EnemyController>(out var enemy))
+            {
+                enemy.TakeDamage(finalDamage);
+            }
+
             PlayHitVFX();
         }
 

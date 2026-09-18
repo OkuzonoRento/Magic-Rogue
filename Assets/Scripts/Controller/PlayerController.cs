@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -58,6 +59,10 @@ namespace MagicRogue
         [SerializeField] private float maxHp = 100f;
         [SerializeField] private float baseMoveSpeed = 5f;
 
+        [Header("連射設定")]
+        [Tooltip("同じ魔法を複数装備している場合の発射間隔（秒）")]
+        [SerializeField] private float duplicateSpellDelay = 0.15f;
+
         [Header("インベントリ参照")]
         [SerializeField] private InventorySO inventory;
 
@@ -70,21 +75,30 @@ namespace MagicRogue
         [Header("装備中の魔法情報 (リアルタイムデバッグ)")]
         [SerializeField] private List<SpellDebugInfo> equippedSpellsDebug = new List<SpellDebugInfo>();
 
-        // 外部（ItemPickup等）からインベントリを参照するためのプロパティ
         public InventorySO Inventory => inventory;
-
         public float CurrentHp => currentHp;
-        public float MaxHp => maxHp;
+
+        // 最大HP（MaxHpUp バフを反映）
+        public float MaxHp
+        {
+            get
+            {
+                float mult = buffHandler != null ? buffHandler.GetMultiplier(BuffType.MaxHpUp) : 1f;
+                return maxHp * mult;
+            }
+        }
 
         private CharacterController characterController;
         private BuffHandler buffHandler;
+        private TargetLockSystem targetLockSystem;
         private readonly Dictionary<int, float> cooldownTimers = new Dictionary<int, float>();
+        private readonly HashSet<MagicData> pendingSpells = new HashSet<MagicData>();
 
         private void Awake()
         {
             characterController = GetComponent<CharacterController>();
             buffHandler = GetComponent<BuffHandler>();
-            currentHp = maxHp;
+            targetLockSystem = GetComponent<TargetLockSystem>();
 
             if (inventory != null)
             {
@@ -92,20 +106,16 @@ namespace MagicRogue
             }
         }
 
-        private void OnEnable()
+        private void Start()
         {
-            if (buffHandler != null)
+            // 1. 出撃前画面で選択されたバフを適用
+            if (GameSceneManager.Instance != null && buffHandler != null)
             {
-                buffHandler.OnPoisonTick += HandlePoisonDamage;
+                GameSceneManager.Instance.ApplyAllBuffsToPlayer(buffHandler);
             }
-        }
 
-        private void OnDisable()
-        {
-            if (buffHandler != null)
-            {
-                buffHandler.OnPoisonTick -= HandlePoisonDamage;
-            }
+            // 2. バフ計算が完了したあとの MaxHp で currentHp を初期化する
+            currentHp = MaxHp;
         }
 
         private void Update()
@@ -133,13 +143,16 @@ namespace MagicRogue
 
             if (inputDir.magnitude >= 0.1f)
             {
-                float speedMult = buffHandler != null ? buffHandler.GetMultiplier(BuffType.SpeedUp, BuffType.Slow) : 1f;
-                float moveSpeed = baseMoveSpeed * speedMult;
+                float moveSpeed = baseMoveSpeed;
 
                 characterController.Move(inputDir * moveSpeed * Time.deltaTime);
 
-                Quaternion targetRotation = Quaternion.LookRotation(inputDir);
-                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * 15f);
+                // ロックオン中でない場合のみ、移動入力方向へ向きを変える
+                if (targetLockSystem == null || !targetLockSystem.IsLockedOn)
+                {
+                    Quaternion targetRotation = Quaternion.LookRotation(inputDir);
+                    transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * 15f);
+                }
             }
         }
 
@@ -159,21 +172,43 @@ namespace MagicRogue
         {
             if (inventory == null || inventory.spellSlots == null) return;
 
-            for (int i = 0; i < inventory.spellSlots.Length; i++)
+            int totalSlots = inventory.spellSlots.Length;
+            int reducedSlots = (int)(buffHandler != null ? buffHandler.GetTotalValue(BuffType.MagicSlotReduction) : 0);
+            int activeSlotCount = Mathf.Max(1, totalSlots - reducedSlots);
+
+            for (int i = 0; i < activeSlotCount; i++)
             {
                 MagicData magic = inventory.spellSlots[i];
                 if (magic == null) continue;
 
+                // クールタイム中の場合はスキップ
                 if (cooldownTimers.TryGetValue(i, out float remaining) && remaining > 0f)
                 {
                     continue;
                 }
 
-                CastSpell(i);
+                // すでに同種魔法のディレイ発射待ち（Pending）ならスキップ
+                if (pendingSpells.Contains(magic))
+                {
+                    continue;
+                }
+
+                // ディレイをつけて順次発射するコルーチンを実行
+                StartCoroutine(CastSpellWithDelay(i, magic));
             }
         }
 
-        // PlayerController.cs 内の CastSpell メソッドを以下のように更新
+        private IEnumerator CastSpellWithDelay(int slotIndex, MagicData magic)
+        {
+            pendingSpells.Add(magic);
+
+            CastSpell(slotIndex);
+
+            // 連続発射用のテンポ（初期値0.15秒）だけ待機
+            yield return new WaitForSeconds(duplicateSpellDelay);
+
+            pendingSpells.Remove(magic);
+        }
 
         public void CastSpell(int slotIndex)
         {
@@ -182,15 +217,32 @@ namespace MagicRogue
             MagicData magic = inventory.spellSlots[slotIndex];
             if (magic == null || magic.projectilePrefab == null) return;
 
-            cooldownTimers[slotIndex] = magic.cooldown;
+            float cdMult = buffHandler != null ? buffHandler.GetMultiplier(BuffType.CooldownIncrease, BuffType.CooldownReduction) : 1f;
+            cooldownTimers[slotIndex] = magic.cooldown * cdMult;
+
+            if (buffHandler != null && buffHandler.CheckIsFailed())
+            {
+                Debug.Log("[Player] 魔法の発動に失敗した！");
+                return;
+            }
+
+            if (buffHandler != null)
+            {
+                float selfDamage = buffHandler.GetTotalValue(BuffType.SelfDamageOnAttack);
+                if (selfDamage > 0f)
+                {
+                    TakeDamage(selfDamage);
+                }
+            }
 
             Vector3 originPos = castPoint != null ? castPoint.position : transform.position + Vector3.up * 1f;
 
-            // 扇形発射に対応する移動タイプ判定
             bool isSpreadType = magic.movementType == MovementType.Spread ||
                                 magic.movementType == MovementType.Split ||
                                 magic.movementType == MovementType.Boomerang ||
                                 magic.movementType == MovementType.Homing;
+
+            float atkMult = buffHandler != null ? buffHandler.GetMultiplier(BuffType.AttackUp, BuffType.AttackDown) : 1f;
 
             if (isSpreadType && magic.projectileCount > 1)
             {
@@ -205,18 +257,15 @@ namespace MagicRogue
                     GameObject projObj = Instantiate(magic.projectilePrefab, originPos, rotation);
                     if (projObj.TryGetComponent<MagicProjectile>(out var projectile))
                     {
-                        float atkMult = buffHandler != null ? buffHandler.GetMultiplier(BuffType.AttackUp) : 1f;
                         projectile.Setup(magic, rotation * Vector3.forward, atkMult);
                     }
                 }
             }
             else
             {
-                // 単発生成（Straight, Laser など）
                 GameObject projObj = Instantiate(magic.projectilePrefab, originPos, transform.rotation);
                 if (projObj.TryGetComponent<MagicProjectile>(out var projectile))
                 {
-                    float atkMult = buffHandler != null ? buffHandler.GetMultiplier(BuffType.AttackUp) : 1f;
                     projectile.Setup(magic, transform.forward, atkMult);
                 }
             }
@@ -235,15 +284,16 @@ namespace MagicRogue
             {
                 MagicData magic = inventory.spellSlots[i];
                 float remaining = cooldownTimers.TryGetValue(i, out float timer) ? Mathf.Max(0f, timer) : 0f;
-                float totalCd = magic != null ? magic.cooldown : 1f;
+                float cdMult = buffHandler != null ? buffHandler.GetMultiplier(BuffType.CooldownIncrease, BuffType.CooldownReduction) : 1f;
+                float totalCd = magic != null ? magic.cooldown * cdMult : 1f;
 
                 float progress = magic != null && totalCd > 0f ? 1f - (remaining / totalCd) : 1f;
 
                 equippedSpellsDebug.Add(new SpellDebugInfo
                 {
                     magicData = magic,
-                    damage = magic != null ? magic.damage : 0f,
-                    maxCooldown = magic != null ? magic.cooldown : 0f,
+                    damage = magic != null ? magic.damage * (buffHandler != null ? buffHandler.GetMultiplier(BuffType.AttackUp, BuffType.AttackDown) : 1f) : 0f,
+                    maxCooldown = totalCd,
                     cooldownProgress = Mathf.Clamp01(progress)
                 });
             }
@@ -251,8 +301,8 @@ namespace MagicRogue
 
         public void TakeDamage(float damageAmount)
         {
-            float defenseMult = buffHandler != null ? buffHandler.GetMultiplier(BuffType.DefenseUp) : 1f;
-            float finalDamage = Mathf.Max(1f, damageAmount / defenseMult);
+            float damageMult = buffHandler != null ? buffHandler.GetMultiplier(BuffType.DamageReceivedUp) : 1f;
+            float finalDamage = Mathf.Max(1f, damageAmount * damageMult);
 
             currentHp -= finalDamage;
             Debug.Log($"[Player] {finalDamage} のダメージを受けた！ 残りHP: {currentHp}");
@@ -262,11 +312,6 @@ namespace MagicRogue
                 currentHp = 0;
                 OnDeath();
             }
-        }
-
-        private void HandlePoisonDamage(BuffType type, float damage)
-        {
-            TakeDamage(damage);
         }
 
         private void OnDeath()

@@ -19,6 +19,10 @@ namespace MagicRogue
         public Sprite icon;
         public ItemRarity rarity = ItemRarity.Common;
 
+        [Header("見た目設定")]
+        [Tooltip("このアイテム専用の3Dモデル（未設定の場合はレアリティ指定モデルが使用されます）")]
+        public GameObject customWorldModelPrefab;
+
         [Header("売却設定")]
         [Tooltip("ショップでの売却価格")]
         public int sellPrice = 50;
