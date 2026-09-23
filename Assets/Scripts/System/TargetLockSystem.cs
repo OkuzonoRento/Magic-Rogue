@@ -15,11 +15,11 @@ namespace MagicRogue
         [SerializeField] private LayerMask enemyLayer;
 
         [Tooltip("ターゲット方向への回転速度")]
-        [SerializeField] private float rotationSpeed = 10f;
+        [SerializeField] private float rotationSpeed = 15f;
 
         [Header("New Input System 設定")]
-        [Tooltip("ロックオン切替用のアクション（例: Tabキー, R3ボタン）")]
-        [SerializeField] private InputActionProperty lockOnAction;
+        [Tooltip("ターゲット切り替え用のアクション（例: Left Shift）")]
+        [SerializeField] private InputActionProperty switchTargetAction;
 
         [Header("UI / マーカー参照")]
         [Tooltip("頭上に表示するターゲットマークのプレハブ")]
@@ -27,33 +27,31 @@ namespace MagicRogue
 
         private Transform currentTarget;
         private TargetMarker activeMarker;
+        private int currentTargetIndex = 0;
 
         public Transform CurrentTarget => currentTarget;
         public bool IsLockedOn => currentTarget != null;
 
         private void OnEnable()
         {
-            // Input Action の購読を開始
-            if (lockOnAction.action != null)
+            if (switchTargetAction.action != null)
             {
-                lockOnAction.action.Enable();
-                lockOnAction.action.performed += OnLockOnPerformed;
+                switchTargetAction.action.Enable();
+                switchTargetAction.action.performed += OnSwitchTargetPerformed;
             }
         }
 
         private void OnDisable()
         {
-            // Input Action の購読を解除
-            if (lockOnAction.action != null)
+            if (switchTargetAction.action != null)
             {
-                lockOnAction.action.performed -= OnLockOnPerformed;
-                lockOnAction.action.Disable();
+                switchTargetAction.action.performed -= OnSwitchTargetPerformed;
+                switchTargetAction.action.Disable();
             }
         }
 
         private void Start()
         {
-            // マーカーの生成
             if (targetMarkerPrefab != null)
             {
                 activeMarker = Instantiate(targetMarkerPrefab);
@@ -63,78 +61,85 @@ namespace MagicRogue
 
         private void Update()
         {
-            if (currentTarget != null)
+            // 範囲内の敵リストを取得
+            List<Transform> enemiesInRange = GetEnemiesInRange();
+
+            if (enemiesInRange.Count == 0)
             {
-                // 1. 距離外脱出・非アクティブ（死亡）チェック
-                float distance = Vector3.Distance(transform.position, currentTarget.position);
-                if (distance > detectionRadius || !currentTarget.gameObject.activeInHierarchy)
+                // 範囲内に敵が1匹もいなければ解除
+                if (currentTarget != null)
                 {
                     ClearTarget();
-                    return;
                 }
-
-                // 2. ロックオン中：自動で敵の方向へ向く処理
-                RotateTowardsTarget();
+                return;
             }
-        }
 
-        // New Input System から入力があった際に呼ばれるコールバック
-        private void OnLockOnPerformed(InputAction.CallbackContext context)
-        {
-            ToggleLockOn();
-        }
-
-        // ロックオン切り替え処理（切り替え時、別の敵がいればターゲット更新）
-        public void ToggleLockOn()
-        {
-            if (currentTarget != null)
+            // 現在のターゲットが「無効（破壊・非アクティブ）」または「範囲外」なら別の敵へ自動更新
+            if (currentTarget == null || !currentTarget.gameObject.activeInHierarchy || !enemiesInRange.Contains(currentTarget))
             {
-                // 既にロックオン中の場合は一度解除
-                ClearTarget();
+                currentTargetIndex = 0;
+                SetTarget(enemiesInRange[0]);
             }
-            else
-            {
-                // ロックオン実行
-                AcquireTarget();
-            }
+
+            // ロックオン中の自動回転処理
+            RotateTowardsTarget();
         }
 
-        // 最寄りの敵を取得してターゲット化
-        private void AcquireTarget()
+        // Shiftキー入力時に次の敵へ切り替え
+        private void OnSwitchTargetPerformed(InputAction.CallbackContext context)
         {
+            SwitchToNextTarget();
+        }
+
+        public void SwitchToNextTarget()
+        {
+            List<Transform> enemiesInRange = GetEnemiesInRange();
+            if (enemiesInRange.Count == 0) return;
+
+            // 次の敵のインデックスへ（末尾を超えたら0に戻る）
+            currentTargetIndex = (currentTargetIndex + 1) % enemiesInRange.Count;
+            SetTarget(enemiesInRange[currentTargetIndex]);
+        }
+
+        // 範囲内の敵（Root Transform）を全取得
+        private List<Transform> GetEnemiesInRange()
+        {
+            List<Transform> enemies = new List<Transform>();
             Collider[] hitColliders = Physics.OverlapSphere(transform.position, detectionRadius, enemyLayer);
-            if (hitColliders.Length == 0) return;
-
-            Transform closestEnemy = null;
-            float minDistance = float.MaxValue;
 
             foreach (var col in hitColliders)
             {
-                float dist = Vector3.Distance(transform.position, col.transform.position);
-                if (dist < minDistance)
+                Transform enemyRoot = col.transform.root;
+                if (!enemies.Contains(enemyRoot) && enemyRoot.gameObject.activeInHierarchy)
                 {
-                    minDistance = dist;
-                    closestEnemy = col.transform;
+                    enemies.Add(enemyRoot);
                 }
             }
 
-            if (closestEnemy != null)
+            // プレイヤーからの距離が近い順にソート（安定した切り替えのため）
+            enemies.Sort((a, b) =>
+                Vector3.Distance(transform.position, a.position).CompareTo(
+                Vector3.Distance(transform.position, b.position))
+            );
+
+            return enemies;
+        }
+
+        private void SetTarget(Transform target)
+        {
+            currentTarget = target;
+            if (activeMarker != null)
             {
-                currentTarget = closestEnemy;
-                if (activeMarker != null)
-                {
-                    activeMarker.SetTarget(currentTarget);
-                }
+                activeMarker.SetTarget(currentTarget);
             }
         }
 
-        // ターゲットに向かって旋回する
         private void RotateTowardsTarget()
         {
             if (currentTarget == null) return;
 
             Vector3 direction = (currentTarget.position - transform.position);
-            direction.y = 0f; // Y軸回転のみ（上下には傾けない）
+            direction.y = 0f;
 
             if (direction.sqrMagnitude > 0.001f)
             {
@@ -146,6 +151,7 @@ namespace MagicRogue
         public void ClearTarget()
         {
             currentTarget = null;
+            currentTargetIndex = 0;
             if (activeMarker != null)
             {
                 activeMarker.SetTarget(null);

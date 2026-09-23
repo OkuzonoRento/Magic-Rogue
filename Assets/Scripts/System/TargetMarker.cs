@@ -5,8 +5,19 @@ namespace MagicRogue
     public class TargetMarker : MonoBehaviour
     {
         [Header("位置調整")]
-        [Tooltip("TargetPoint からの微調整用オフセット（少し浮かせる場合はYを大きくする）")]
-        [SerializeField] private Vector3 offset = Vector3.zero;
+        [Tooltip("TargetPoint からの基本オフセット")]
+        [SerializeField] private Vector3 offset = new Vector3(0f, 0.5f, 0f);
+
+        [Header("上下ふわふわ設定")]
+        [Tooltip("上下移動の振り幅")]
+        [SerializeField] private float floatAmplitude = 0.2f;
+
+        [Tooltip("上下移動のスピード")]
+        [SerializeField] private float floatSpeed = 3f;
+
+        [Header("回転設定")]
+        [Tooltip("回転のスピード（Y軸回り）")]
+        [SerializeField] private float rotateSpeed = 180f;
 
         private Transform targetPointTransform;
 
@@ -19,33 +30,16 @@ namespace MagicRogue
                 return;
             }
 
-            // 敵のオブジェクト配下から "TargetPoint" という名前の Transform を検索
-            targetPointTransform = targetRoot.Find("TargetPoint");
+            // 階層の深さに関わらず全子要素から "TargetPoint" を検索
+            targetPointTransform = FindDeepChild(targetRoot, "TargetPoint");
 
-            // 子要素に見つからない場合は深層検索
             if (targetPointTransform == null)
             {
-                var points = targetRoot.GetComponentsInChildren<Transform>();
-                foreach (var p in points)
-                {
-                    if (p.name == "TargetPoint")
-                    {
-                        targetPointTransform = p;
-                        break;
-                    }
-                }
+                targetPointTransform = targetRoot;
             }
 
-            if (targetPointTransform != null)
-            {
-                gameObject.SetActive(true);
-                UpdatePosition();
-            }
-            else
-            {
-                Debug.LogWarning($"[TargetMarker] {targetRoot.name} に 'TargetPoint' が見つかりません。");
-                gameObject.SetActive(false);
-            }
+            gameObject.SetActive(true);
+            UpdateMarkerTransform();
         }
 
         private void LateUpdate()
@@ -56,19 +50,33 @@ namespace MagicRogue
                 return;
             }
 
-            UpdatePosition();
-
-            // カメラの方向に向ける（ビルボード処理）
-            if (Camera.main != null)
-            {
-                transform.rotation = Camera.main.transform.rotation;
-            }
+            UpdateMarkerTransform();
         }
 
-        private void UpdatePosition()
+        private void UpdateMarkerTransform()
         {
-            // TargetPoint の位置 ＋ オフセットに移動
-            transform.position = targetPointTransform.position + offset;
+            // 1. 上下にふわふわ揺れる位置計算
+            float yOffset = Mathf.Sin(Time.time * floatSpeed) * floatAmplitude;
+            Vector3 animatedOffset = offset + new Vector3(0f, yOffset, 0f);
+
+            transform.position = targetPointTransform.position + animatedOffset;
+
+            // 2. Z軸を中心にクルクル回転
+            transform.Rotate(Vector3.forward, rotateSpeed * Time.deltaTime, Space.Self);
+        }
+
+        // 深層検索用メソッド
+        private Transform FindDeepChild(Transform aParent, string aName)
+        {
+            foreach (Transform child in aParent)
+            {
+                if (child.name == aName)
+                    return child;
+                Transform result = FindDeepChild(child, aName);
+                if (result != null)
+                    return result;
+            }
+            return null;
         }
     }
 }

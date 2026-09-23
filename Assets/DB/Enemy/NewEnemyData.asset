@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MagicRogue.EnemyData
   enemyName: 
   maxHp: 50
-  moveSpeed: 5
+  moveSpeed: 3
   sightRange: 7.67
   sightAngle: 134
   sightRangeColor: {r: 0, g: 1, b: 0, a: 0.2}

@@ -94,6 +94,10 @@ namespace MagicRogue
         private readonly Dictionary<int, float> cooldownTimers = new Dictionary<int, float>();
         private readonly HashSet<MagicData> pendingSpells = new HashSet<MagicData>();
 
+        // シーン遷移演出用の制御フラグ
+        private bool isInvincible = false;
+        private bool isControlActive = true;
+
         private void Awake()
         {
             characterController = GetComponent<CharacterController>();
@@ -120,10 +124,30 @@ namespace MagicRogue
 
         private void Update()
         {
+            // 操作不能（魔法陣を踏んだ後の吸い寄せ中など）時は移動・攻撃の入力をスキップ
+            if (!isControlActive) return;
+
             HandleMovement();
             UpdateCooldowns();
             AutoCastSpells();
             UpdateDebugInfo();
+        }
+
+        /// <summary>
+        /// 無敵状態を設定する
+        /// </summary>
+        public void SetInvincible(bool state)
+        {
+            isInvincible = state;
+            Debug.Log($"[Player] 無敵状態: {isInvincible}");
+        }
+
+        /// <summary>
+        /// プレイヤーの操作可能状態を設定する（false でキー移動・自動攻撃を停止）
+        /// </summary>
+        public void SetControlActive(bool state)
+        {
+            isControlActive = state;
         }
 
         private void HandleMovement()
@@ -139,18 +163,35 @@ namespace MagicRogue
             if (keyboard.dKey?.isPressed == true || keyboard.rightArrowKey?.isPressed == true) horizontal += 1f;
             if (keyboard.aKey?.isPressed == true || keyboard.leftArrowKey?.isPressed == true) horizontal -= 1f;
 
-            Vector3 inputDir = new Vector3(horizontal, 0f, vertical).normalized;
+            Vector3 rawInput = new Vector3(horizontal, 0f, vertical).normalized;
 
-            if (inputDir.magnitude >= 0.1f)
+            if (rawInput.magnitude >= 0.1f)
             {
+                Vector3 moveDirection = rawInput;
+
+                // メインカメラの向きに合わせて移動ベクトルを計算
+                if (Camera.main != null)
+                {
+                    Vector3 camForward = Camera.main.transform.forward;
+                    Vector3 camRight = Camera.main.transform.right;
+
+                    // 高さを無視して平面ベクトル化
+                    camForward.y = 0f;
+                    camRight.y = 0f;
+                    camForward.Normalize();
+                    camRight.Normalize();
+
+                    // カメラ視点に基づいた移動方向の算出
+                    moveDirection = (camForward * rawInput.z) + (camRight * rawInput.x);
+                }
+
                 float moveSpeed = baseMoveSpeed;
+                characterController.Move(moveDirection * moveSpeed * Time.deltaTime);
 
-                characterController.Move(inputDir * moveSpeed * Time.deltaTime);
-
-                // ロックオン中でない場合のみ、移動入力方向へ向きを変える
+                // ロックオン中でない場合のみ、移動入力の方向へ向きを変える
                 if (targetLockSystem == null || !targetLockSystem.IsLockedOn)
                 {
-                    Quaternion targetRotation = Quaternion.LookRotation(inputDir);
+                    Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
                     transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * 15f);
                 }
             }
@@ -301,6 +342,9 @@ namespace MagicRogue
 
         public void TakeDamage(float damageAmount)
         {
+            // 無敵状態ならダメージを受けない
+            if (isInvincible) return;
+
             float damageMult = buffHandler != null ? buffHandler.GetMultiplier(BuffType.DamageReceivedUp) : 1f;
             float finalDamage = Mathf.Max(1f, damageAmount * damageMult);
 

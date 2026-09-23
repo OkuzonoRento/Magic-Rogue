@@ -107,6 +107,20 @@ namespace MagicRogue
             SceneManager.LoadScene(selectedMapName);
         }
 
+        /// <summary>
+        /// 指定された名前のシーンへ直接遷移する（ショップ遷移用など）
+        /// </summary>
+        public void ChangeScene(string sceneName)
+        {
+            if (string.IsNullOrEmpty(sceneName))
+            {
+                Debug.LogError("[GameSceneManager] 遷移先のシーン名が空です！");
+                return;
+            }
+
+            SceneManager.LoadScene(sceneName);
+        }
+
         #endregion
     }
 }
