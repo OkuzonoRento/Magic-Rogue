@@ -14,8 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MagicRogue.ItemData
   itemId: 
   itemName: 
-  icon: {fileID: 0}
+  icon: {fileID: -916336503, guid: 3aaea6570d434e548932ba6cc61566e4, type: 3}
   rarity: 0
   customWorldModelPrefab: {fileID: 3093723940450508141, guid: d50fd29c99147284eaa06768e0b00bab, type: 3}
+  buyPrice: 100
   sellPrice: 50
   maxStackSize: 99

@@ -23,7 +23,10 @@ namespace MagicRogue
         [Tooltip("このアイテム専用の3Dモデル（未設定の場合はレアリティ指定モデルが使用されます）")]
         public GameObject customWorldModelPrefab;
 
-        [Header("売却設定")]
+        [Header("売買設定")]
+        [Tooltip("ショップでの購入価格")]
+        public int buyPrice = 100;
+
         [Tooltip("ショップでの売却価格")]
         public int sellPrice = 50;
 
