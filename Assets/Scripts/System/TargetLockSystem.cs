@@ -8,7 +8,7 @@ namespace MagicRogue
     public class TargetLockSystem : MonoBehaviour
     {
         [Header("ロックオン設定")]
-        [Tooltip("ターゲットを検索・維持する最大距離")]
+        [Tooltip("ターゲットを検索・維持する基本距離")]
         [SerializeField] private float detectionRadius = 15f;
 
         [Tooltip("敵のレイヤー")]
@@ -101,11 +101,21 @@ namespace MagicRogue
             SetTarget(enemiesInRange[currentTargetIndex]);
         }
 
-        // 範囲内の敵（Root Transform）を全取得
+        // 範囲内の敵（Root Transform）を全取得（SearchRangeUp/Down を反映）
         private List<Transform> GetEnemiesInRange()
         {
             List<Transform> enemies = new List<Transform>();
-            Collider[] hitColliders = Physics.OverlapSphere(transform.position, detectionRadius, enemyLayer);
+
+            // プレイヤーの SearchRangeUp(+) / SearchRangeDown(-) 倍率を取得
+            float rangeMultiplier = 1f;
+            if (TryGetComponent<BuffHandler>(out var buffHandler))
+            {
+                rangeMultiplier = buffHandler.GetMultiplier(BuffType.SearchRangeUp, BuffType.SearchRangeDown);
+            }
+
+            float currentRadius = detectionRadius * rangeMultiplier;
+
+            Collider[] hitColliders = Physics.OverlapSphere(transform.position, currentRadius, enemyLayer);
 
             foreach (var col in hitColliders)
             {
@@ -161,7 +171,12 @@ namespace MagicRogue
         private void OnDrawGizmosSelected()
         {
             Gizmos.color = Color.yellow;
-            Gizmos.DrawWireSphere(transform.position, detectionRadius);
+            float rangeMultiplier = 1f;
+            if (Application.isPlaying && TryGetComponent<BuffHandler>(out var buffHandler))
+            {
+                rangeMultiplier = buffHandler.GetMultiplier(BuffType.SearchRangeUp, BuffType.SearchRangeDown);
+            }
+            Gizmos.DrawWireSphere(transform.position, detectionRadius * rangeMultiplier);
         }
     }
 }

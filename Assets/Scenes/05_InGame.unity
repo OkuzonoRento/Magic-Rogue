@@ -493,7 +493,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b62ecc6b4af0ec24eb3a2ee20d28f78a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MagicRogue.TargetLockSystem
-  detectionRadius: 15
+  detectionRadius: 10
   enemyLayer:
     serializedVersion: 2
     m_Bits: 64
@@ -1180,7 +1180,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7e79165928bb66a4fa8e76cbeea026a7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MagicRogue.GameSceneManager
-  selectedGlobalBuffs: []
+  selectedGlobalBuffs:
+  - {fileID: 11400000, guid: e42be07c126211c43b5f581117e924cc, type: 2}
   selectedMapBuffs: []
   selectedMapName: 
 --- !u!4 &1647328383

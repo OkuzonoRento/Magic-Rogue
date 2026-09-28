@@ -1,5 +1,7 @@
-using System.Collections.Generic;
+ï»¿using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
+using TMPro;
 
 namespace MagicRogue
 {
@@ -7,25 +9,60 @@ namespace MagicRogue
     {
         public static ShopManager Instance { get; private set; }
 
-        [Header("ƒvƒŒƒCƒ„[‚ÌƒCƒ“ƒxƒ“ƒgƒŠƒf[ƒ^")]
+        [Header("å‚ç…§SO")]
         [SerializeField] private InventorySO playerInventory;
+        [Header("ã‚·ãƒ§ãƒƒãƒ—å‡ºç¾å€™è£œã¨ãªã‚‹é­”æ³•ãƒã‚¹ã‚¿ãƒ¼ãƒªã‚¹ãƒˆ")]
+        [SerializeField] private List<MagicData> availableShopMagics = new();
 
-        [Header("ƒVƒ‡ƒbƒvİ’è")]
-        [Tooltip("oŒ»‚·‚é‰Â”\«‚Ì‚ ‚é–‚–@‚ÌƒŠƒXƒgiŠm—¦’²®‚Å•¡”“o˜^‚ª‚ ‚Á‚Ä‚à‰Âj")]
-        [SerializeField] private List<MagicData> availableMagics = new List<MagicData>();
+        [Header("ã‚¹ãƒ­ãƒƒãƒˆã‚°ãƒªãƒƒãƒ‰è¦ª Transform (è‡ªå‹•ç”Ÿæˆç”¨)")]
+        [SerializeField] private Transform inventoryGridParent;
+        [SerializeField] private Transform attackGridParent;
 
-        [Header("Œ»İ‚ÌƒVƒ‡ƒbƒv¤•ii3ƒXƒƒbƒgj")]
-        [SerializeField] private MagicData[] shopSlots = new MagicData[3];
+        [Header("UIãƒ†ã‚­ã‚¹ãƒˆãƒ»ã‚¹ãƒ©ã‚¤ãƒ€ãƒ¼")]
+        [SerializeField] private TextMeshProUGUI coinText;
+        [SerializeField] private TextMeshProUGUI transactionPriceText;
+        [SerializeField] private TextMeshProUGUI sellAmountText;
+        [SerializeField] private Slider sellQuantitySlider;
 
-        [Header("w“ü‘Ò‹@—pƒXƒƒbƒg (Buy)")]
-        [SerializeField] private MagicData buyPendingMagic;
-        private int buyPendingShopIndex = -1;
+        [Header("UIãƒ†ã‚­ã‚¹ãƒˆï¼ˆã‚·ãƒ§ãƒƒãƒ—å•†å“ä¾¡æ ¼è¡¨ç¤ºç”¨ï¼‰")]
+        [SerializeField] private List<TextMeshProUGUI> shopPriceTexts = new(); // å„å•†å“ã®NewText
 
-        [Header("”„‹p—pƒXƒƒbƒg (Sell)")]
-        [SerializeField] private ItemData sellSlotItem;
-        [SerializeField] private int sellSlotTotalAmount = 0;   // SellƒXƒƒbƒg‚ÉˆÚ“®‚µ‚½‘”
-        [SerializeField] private int sellSlotSelectAmount = 1;  // ƒXƒ‰ƒCƒ_[‚Åw’è‚³‚ê‚½”„‹p”
-        private int originalInventorySlotIndex = -1;             // Œ³‚¢‚½ƒCƒ“ƒxƒ“ƒgƒŠƒXƒƒbƒg”Ô†
+        [Header("UIãƒœã‚¿ãƒ³")]
+        [SerializeField] private Button buyButton;
+        [SerializeField] private Button sellButton;
+        [SerializeField] private Button exitButton;
+
+        [Header("UIã‚¤ãƒ¡ãƒ¼ã‚¸ï¼ˆã‚¹ãƒ­ãƒƒãƒˆã‚¢ã‚¤ã‚³ãƒ³ç›´æ¥å‚ç…§ç”¨ï¼‰")]
+        [SerializeField] private Image buyItemImage;
+        [SerializeField] private Image sellItemImage;
+
+        [Header("å›ºå®šã‚¹ãƒ­ãƒƒãƒˆï¼ˆæ‰‹å‹•å‰²ã‚Šå½“ã¦ç”¨ï¼‰")]
+        [SerializeField] private ItemSlotUI buyPendingSlot;
+        [SerializeField] private ItemSlotUI sellSlot;
+        [SerializeField] private List<ItemSlotUI> shopSlots = new();
+
+        [Header("æ–‡å­—è‰²è¨­å®š")]
+        [SerializeField] private Color buyColor = Color.red;
+        [SerializeField] private Color sellColor = Color.yellow;
+        [SerializeField] private Color defaultPriceColor = Color.white;
+
+        [Header("ã‚·ãƒ¼ãƒ³é·ç§»")]
+        [SerializeField] private string nextSceneName = "03_MapSelect";
+
+        // è‡ªå‹•ç”Ÿæˆã•ã‚Œã‚‹ã‚¹ãƒ­ãƒƒãƒˆã®ä¿æŒç”¨ãƒªã‚¹ãƒˆ
+        private List<ItemSlotUI> inventorySlots = new();
+        private List<ItemSlotUI> attackSlots = new();
+
+        // å†…éƒ¨çŠ¶æ…‹
+        private MagicData pendingBuyMagic;
+        private int pendingShopIndex = -1;
+
+        private ItemData sellPendingItem;
+        private int sellPendingTotalAmount;
+        private int sellPendingSelectAmount = 1;
+        private int sellFromInventoryIndex = -1;
+
+        private MagicData[] currentShopMagics = new MagicData[3];
 
         private void Awake()
         {
@@ -35,168 +72,413 @@ namespace MagicRogue
 
         private void Start()
         {
-            RerollShopSlots();
+            if (buyButton != null) buyButton.onClick.AddListener(ConfirmBuy);
+            if (sellButton != null) sellButton.onClick.AddListener(ConfirmSell);
+            if (exitButton != null) exitButton.onClick.AddListener(OnExitButtonClicked);
+
+            if (sellQuantitySlider != null)
+            {
+                sellQuantitySlider.onValueChanged.AddListener(OnSellSliderValueChanged);
+            }
+
+            // è‡ªå‹•ç”Ÿæˆã•ã‚ŒãŸã‚¹ãƒ­ãƒƒãƒˆã‚’å–å¾—ã—ã¦ã‚»ãƒƒãƒˆã‚¢ãƒƒãƒ—
+            RefreshDynamicSlots();
+
+            // æ¯å†ç”Ÿæ™‚ã«é‡è¤‡ãªã—ã§ã‚·ãƒ§ãƒƒãƒ—ã‚¢ã‚¤ãƒ†ãƒ ã‚’æ–°è¦ãƒ©ãƒ³ãƒ€ãƒ åˆæœŸåŒ–
+            GenerateRandomShopItems();
+
+            // èµ·å‹•æ™‚ã«åˆæœŸå·¦è©°ã‚ï¼ˆå‰è©°ã‚ï¼‰ã‚’å®Ÿè¡Œ
+            if (playerInventory != null)
+            {
+                playerInventory.CompactInventory();
+            }
+
+            UpdateAllUI();
         }
 
-        /// <summary>
-        /// ƒVƒ‡ƒbƒvƒe[ƒuƒ‹‚©‚çd•¡i“¯í–‚–@j‚È‚µ‚Å3‚Â‚Ì–‚–@‚ğ’Š‘I‚µ‚ÄƒXƒƒbƒg‚ÉƒZƒbƒg‚·‚é
-        /// </summary>
-        public void RerollShopSlots()
-        {
-            if (availableMagics == null || availableMagics.Count == 0) return;
-
-            // ƒe[ƒuƒ‹‚ğ‰˜‚³‚È‚¢‚æ‚¤’Š‘I—p‚ÌˆêƒŠƒXƒg‚ğì¬
-            List<MagicData> tempCandidates = new List<MagicData>(availableMagics);
-
-            for (int i = 0; i < shopSlots.Length; i++)
-            {
-                if (tempCandidates.Count > 0)
-                {
-                    // 1. ˆêƒŠƒXƒg‚©‚çƒ‰ƒ“ƒ_ƒ€‘Io
-                    int randomIndex = Random.Range(0, tempCandidates.Count);
-                    MagicData selectedMagic = tempCandidates[randomIndex];
-
-                    // 2. ƒVƒ‡ƒbƒv˜g‚ÉƒZƒbƒg
-                    shopSlots[i] = selectedMagic;
-
-                    // š 3. ‘I‚Î‚ê‚½–‚–@‚Æu“¯‚¶ƒf[ƒ^ií—Şjv‚ğˆêƒŠƒXƒg‚©‚ç‚·‚×‚ÄˆêŠ‡œŠO
-                    tempCandidates.RemoveAll(magic => magic == selectedMagic);
-                }
-                else
-                {
-                    // ƒ†ƒj[ƒN‚È–‚–@‚Ìí—Ş‚ª•s‘«‚µ‚Ä‚¢‚éê‡‚Í‹ó˜g‚É‚·‚é
-                    shopSlots[i] = null;
-                }
-            }
-
-            if (ShopUIController.Instance != null)
-            {
-                ShopUIController.Instance.UpdateShopUI();
-            }
-        }
-
-        public void SetBuyPendingMagic(MagicData magic, int fromShopIndex)
-        {
-            buyPendingMagic = magic;
-            buyPendingShopIndex = fromShopIndex;
-        }
-
-        public bool ConfirmBuy()
-        {
-            if (playerInventory == null || buyPendingMagic == null) return false;
-
-            int price = buyPendingMagic.buyPrice > 0 ? buyPendingMagic.buyPrice : 100;
-
-            if (playerInventory.coins < price)
-            {
-                Debug.Log("[Shop] ƒRƒCƒ“‚ª‘«‚è‚Ü‚¹‚ñI");
-                return false;
-            }
-
-            if (playerInventory.GetEmptySlotIndex() == -1)
-            {
-                Debug.Log("[Shop] ƒCƒ“ƒxƒ“ƒgƒŠ‚É‹ó‚«‚ª‚ ‚è‚Ü‚¹‚ñI");
-                return false;
-            }
-
-            playerInventory.coins -= price;
-            playerInventory.AddItem(buyPendingMagic, 1);
-
-            if (buyPendingShopIndex >= 0 && buyPendingShopIndex < shopSlots.Length)
-            {
-                shopSlots[buyPendingShopIndex] = null;
-            }
-
-            buyPendingMagic = null;
-            buyPendingShopIndex = -1;
-
-            if (ShopUIController.Instance != null)
-            {
-                ShopUIController.Instance.UpdateShopUI();
-            }
-
-            return true;
-        }
-
-        /// <summary>
-        /// SellƒXƒƒbƒg‚ÖƒAƒCƒeƒ€‚ğƒZƒbƒg
-        /// </summary>
-        public void SetSellSlotItem(ItemData item, int totalAmount, int originalSlotIndex)
-        {
-            sellSlotItem = item;
-            sellSlotTotalAmount = totalAmount;
-            sellSlotSelectAmount = totalAmount; // ƒfƒtƒHƒ‹ƒg‚Í‘SŠz
-            originalInventorySlotIndex = originalSlotIndex;
-        }
-
-        /// <summary>
-        /// ƒXƒ‰ƒCƒ_[‚©‚çŒÂ”‚ª•ÏX‚³‚ê‚½‚ÌXVˆ—
-        /// </summary>
-        public void UpdateSellAmount(int amount)
-        {
-            sellSlotSelectAmount = Mathf.Clamp(amount, 1, sellSlotTotalAmount);
-            if (ShopUIController.Instance != null)
-            {
-                ShopUIController.Instance.UpdateShopUI();
-            }
-        }
-
-        /// <summary>
-        /// Sellƒ{ƒ^ƒ“‚ª‰Ÿ‚³‚ê‚½‚Ì”„‹pˆ—
-        /// </summary>
-        public void SellMagicInSlot()
-        {
-            if (playerInventory == null || sellSlotItem == null || sellSlotSelectAmount <= 0) return;
-
-            // 1. ”„‹p•ª‚¾‚¯‚ÌƒS[ƒ‹ƒh‚ğ‰ÁZ
-            int totalEarnedCoins = sellSlotItem.sellPrice * sellSlotSelectAmount;
-            playerInventory.coins += totalEarnedCoins;
-
-            Debug.Log($"[Shop] {sellSlotItem.itemName} ~ {sellSlotSelectAmount} ŒÂ‚ğ”„‹pI (+{totalEarnedCoins} G)");
-
-            // 2. ”„‚êc‚Á‚½•ªi‚ ‚Ü‚èj‚ª‚ ‚éê‡‚ÍƒCƒ“ƒxƒ“ƒgƒŠ‚Ö–ß‚·
-            int remainingAmount = sellSlotTotalAmount - sellSlotSelectAmount;
-            if (remainingAmount > 0)
-            {
-                if (originalInventorySlotIndex >= 0 && playerInventory.inventorySlots[originalInventorySlotIndex] == null)
-                {
-                    playerInventory.AddItemToSlot(sellSlotItem, remainingAmount, originalInventorySlotIndex);
-                }
-                else
-                {
-                    playerInventory.AddItem(sellSlotItem, remainingAmount);
-                }
-            }
-
-            // 3. ƒCƒ“ƒxƒ“ƒgƒŠ‚Ì‹ó‚«ƒXƒƒbƒg‘O‹l‚ß®—‚ğÀs
-            playerInventory.CompactInventory();
-
-            // 4. ƒNƒŠƒA
-            sellSlotItem = null;
-            sellSlotTotalAmount = 0;
-            sellSlotSelectAmount = 0;
-            originalInventorySlotIndex = -1;
-
-            if (ShopUIController.Instance != null)
-            {
-                ShopUIController.Instance.UpdateShopUI();
-            }
-        }
-
-        // --- ƒQƒbƒ^[ & ƒZƒbƒ^[ ---
         public InventorySO GetPlayerInventory() => playerInventory;
-        public MagicData GetShopSlotMagic(int index) => (index >= 0 && index < shopSlots.Length) ? shopSlots[index] : null;
-        public MagicData GetBuyPendingMagic() => buyPendingMagic;
-        public ItemData GetSellSlotItem() => sellSlotItem;
-        public int GetSellSlotTotalAmount() => sellSlotTotalAmount;
-        public int GetSellSlotSelectAmount() => sellSlotSelectAmount;
 
-        // ŒİŠ·—p
-        public void SetSellSlotMagic(MagicData magic)
+        /// <summary>
+        /// è‡ªå‹•ç”Ÿæˆã•ã‚ŒãŸè¦ªè¦ç´ ã®å­ã‚¹ãƒ­ãƒƒãƒˆï¼ˆItemSlotUIï¼‰ã‚’è‡ªå‹•å–å¾—ãƒ»ã‚»ãƒƒãƒˆã‚¢ãƒƒãƒ—
+        /// </summary>
+        public void RefreshDynamicSlots()
         {
-            if (magic == null) SetSellSlotItem(null, 0, -1);
-            else SetSellSlotItem(magic, 1, -1);
+            inventorySlots.Clear();
+            if (inventoryGridParent != null)
+            {
+                for (int i = 0; i < inventoryGridParent.childCount; i++)
+                {
+                    ItemSlotUI slot = inventoryGridParent.GetChild(i).GetComponent<ItemSlotUI>();
+                    if (slot != null)
+                    {
+                        slot.SetupSlot(SlotType.Inventory, i);
+                        inventorySlots.Add(slot);
+                    }
+                }
+            }
+
+            attackSlots.Clear();
+            if (attackGridParent != null)
+            {
+                for (int i = 0; i < attackGridParent.childCount; i++)
+                {
+                    ItemSlotUI slot = attackGridParent.GetChild(i).GetComponent<ItemSlotUI>();
+                    if (slot != null)
+                    {
+                        slot.SetupSlot(SlotType.AttackSlot, i);
+                        attackSlots.Add(slot);
+                    }
+                }
+            }
         }
-        public MagicData GetSellSlotMagic() => sellSlotItem as MagicData;
+
+        /// <summary>
+        /// é‡è¤‡ã—ãªã„ã‚ˆã†ã«ãƒ©ãƒ³ãƒ€ãƒ ã§3ã¤ã®é­”æ³•ã‚’æŠ½é¸ãƒ»åˆæœŸåŒ–ã™ã‚‹
+        /// </summary>
+        public void GenerateRandomShopItems()
+        {
+            if (availableShopMagics == null || availableShopMagics.Count == 0)
+            {
+                Debug.LogWarning("[ShopManager] availableShopMagics ãŒç©ºã§ã™ã€‚");
+                return;
+            }
+
+            // nullã‚’é™¤å¤–ã—ãŸé‡è¤‡ãªã—ãƒªã‚¹ãƒˆã®ä½œæˆ
+            List<MagicData> uniquePool = new List<MagicData>();
+            foreach (var magic in availableShopMagics)
+            {
+                if (magic != null && !uniquePool.Contains(magic))
+                {
+                    uniquePool.Add(magic);
+                }
+            }
+
+            // ã‚·ãƒ£ãƒƒãƒ•ãƒ«ï¼ˆFisher-Yates ã‚¢ãƒ«ã‚´ãƒªã‚ºãƒ ï¼‰
+            for (int i = 0; i < uniquePool.Count; i++)
+            {
+                int randIndex = Random.Range(i, uniquePool.Count);
+                (uniquePool[i], uniquePool[randIndex]) = (uniquePool[randIndex], uniquePool[i]);
+            }
+
+            // è¢«ã‚Šãªã—ã§ã‚·ãƒ§ãƒƒãƒ—æ ï¼ˆ3æ ï¼‰ã«å‰²ã‚Šå½“ã¦
+            for (int i = 0; i < currentShopMagics.Length; i++)
+            {
+                currentShopMagics[i] = (i < uniquePool.Count) ? uniquePool[i] : null;
+            }
+
+            pendingBuyMagic = null;
+            pendingShopIndex = -1;
+        }
+
+        /// <summary>
+        /// ç”»é¢å…¨ä½“ã®è¡¨ç¤ºã‚’ä¸€æ‹¬æ›´æ–°ï¼ˆUIæç”»ã®ã¿ã‚’è¡Œã„ã€å‹æ‰‹ãªã‚½ãƒ¼ãƒˆ/å·¦è©°ã‚ã¯ã—ãªã„ï¼‰
+        /// </summary>
+        public void UpdateAllUI()
+        {
+            if (inventorySlots.Count == 0 || attackSlots.Count == 0)
+            {
+                RefreshDynamicSlots();
+            }
+
+            // 1. æ‰€æŒã‚³ã‚¤ãƒ³è¡¨ç¤º
+            if (coinText != null && playerInventory != null)
+            {
+                coinText.text = $"{playerInventory.coins}";
+            }
+
+            // 2. å„ã‚¹ãƒ­ãƒƒãƒˆUIã®æç”»æ›´æ–°
+            foreach (var slot in inventorySlots) if (slot != null) slot.UpdateSlotUI();
+            foreach (var slot in attackSlots) if (slot != null) slot.UpdateSlotUI();
+
+            // ã‚·ãƒ§ãƒƒãƒ—ã‚¹ãƒ­ãƒƒãƒˆã®æç”» ï¼† Buyé¸æŠä¸­ã‚¢ã‚¤ãƒ†ãƒ ã®ã‚°ãƒ¬ãƒ¼ã‚¢ã‚¦ãƒˆåˆ¶å¾¡ ï¼† ä¾¡æ ¼ãƒ†ã‚­ã‚¹ãƒˆæ›´æ–°
+            for (int i = 0; i < shopSlots.Count; i++)
+            {
+                if (shopSlots[i] == null) continue;
+                shopSlots[i].UpdateSlotUI();
+
+                CanvasGroup canvasGroup = shopSlots[i].GetComponent<CanvasGroup>();
+                if (canvasGroup == null)
+                {
+                    canvasGroup = shopSlots[i].gameObject.AddComponent<CanvasGroup>();
+                }
+
+                if (i == pendingShopIndex && pendingBuyMagic != null)
+                {
+                    canvasGroup.alpha = 0.4f; // ã‚°ãƒ¬ãƒ¼ã‚¢ã‚¦ãƒˆ
+                    canvasGroup.blocksRaycasts = false; // æ“ä½œä¸èƒ½ã«ã™ã‚‹
+                }
+                else
+                {
+                    canvasGroup.alpha = 1.0f;
+                    canvasGroup.blocksRaycasts = true;
+                }
+
+                // ã‚·ãƒ§ãƒƒãƒ—å•†å“ã®ä¸‹ã«ã‚ã‚‹NewTextã«ä¾¡æ ¼ã‚’è¨­å®š
+                if (i < shopPriceTexts.Count && shopPriceTexts[i] != null)
+                {
+                    MagicData magic = GetShopSlotMagic(i);
+                    if (magic != null)
+                    {
+                        shopPriceTexts[i].text = $"{magic.buyPrice}";
+                    }
+                    else
+                    {
+                        shopPriceTexts[i].text = "----";
+                    }
+                }
+            }
+
+            if (buyPendingSlot != null) buyPendingSlot.UpdateSlotUI();
+            if (sellSlot != null) sellSlot.UpdateSlotUI();
+
+            // 3. Buy / Sell ã‚¢ã‚¤ãƒ†ãƒ ç”»åƒã®æ›´æ–°
+            if (buyItemImage != null)
+            {
+                buyItemImage.gameObject.SetActive(pendingBuyMagic != null);
+                if (pendingBuyMagic != null) buyItemImage.sprite = pendingBuyMagic.icon;
+            }
+
+            if (sellItemImage != null)
+            {
+                bool hasSellItem = sellPendingItem != null && sellPendingTotalAmount > 0;
+                sellItemImage.gameObject.SetActive(hasSellItem);
+                if (hasSellItem) sellItemImage.sprite = sellPendingItem.icon;
+            }
+
+            // 4. ã‚«ã‚¦ãƒ³ãƒˆã®ãƒ†ã‚­ã‚¹ãƒˆã®æ›´æ–° (Buyå„ªå…ˆã€æ¬¡ã«Sell)
+            if (transactionPriceText != null)
+            {
+                if (pendingBuyMagic != null)
+                {
+                    transactionPriceText.text = $"-{pendingBuyMagic.buyPrice}";
+                    transactionPriceText.color = buyColor;
+                }
+                else if (sellPendingItem != null && sellPendingTotalAmount > 0)
+                {
+                    int totalPrice = sellPendingItem.sellPrice * sellPendingSelectAmount;
+                    transactionPriceText.text = $"+{totalPrice}";
+                    transactionPriceText.color = sellColor;
+                }
+                else
+                {
+                    transactionPriceText.text = "";
+                    transactionPriceText.color = defaultPriceColor;
+                }
+            }
+
+            // 5. Sellã‚¹ãƒ©ã‚¤ãƒ€ãƒ¼ã®åŠé€æ˜ãƒ»æ“ä½œå¯å¦åˆ¶å¾¡ ï¼† å€‹æ•°ãƒ†ã‚­ã‚¹ãƒˆæ›´æ–°
+            if (sellQuantitySlider != null)
+            {
+                sellQuantitySlider.gameObject.SetActive(true); // å¸¸æ™‚ã‚¢ã‚¯ãƒ†ã‚£ãƒ–
+                sellQuantitySlider.wholeNumbers = true;
+
+                CanvasGroup sliderCanvasGroup = sellQuantitySlider.GetComponent<CanvasGroup>();
+                if (sliderCanvasGroup == null)
+                {
+                    sliderCanvasGroup = sellQuantitySlider.gameObject.AddComponent<CanvasGroup>();
+                }
+
+                if (sellPendingItem != null && sellPendingTotalAmount > 0)
+                {
+                    // Sellã‚¢ã‚¤ãƒ†ãƒ ãŒå…¥ã£ã¦ã„ã‚‹æ™‚ï¼šãã£ãã‚Šè¡¨ç¤ºï¼†æ“ä½œå¯èƒ½
+                    sliderCanvasGroup.alpha = 1.0f;
+                    sliderCanvasGroup.blocksRaycasts = true;
+
+                    if (sellPendingTotalAmount <= 1)
+                    {
+                        sellQuantitySlider.minValue = 0;
+                        sellQuantitySlider.maxValue = 1;
+                        sellQuantitySlider.SetValueWithoutNotify(1);
+                        sellQuantitySlider.interactable = false;
+                    }
+                    else
+                    {
+                        sellQuantitySlider.minValue = 1;
+                        sellQuantitySlider.maxValue = sellPendingTotalAmount;
+                        sellQuantitySlider.SetValueWithoutNotify(sellPendingSelectAmount);
+                        sellQuantitySlider.interactable = true;
+                    }
+
+                    if (sellAmountText != null)
+                    {
+                        sellAmountText.text = $"{sellPendingSelectAmount} / {sellPendingTotalAmount}";
+                    }
+                }
+                else
+                {
+                    // Sellã‚¢ã‚¤ãƒ†ãƒ ãŒå…¥ã£ã¦ã„ãªã„æ™‚ï¼šåŠé€æ˜ï¼†æ“ä½œä¸èƒ½
+                    sliderCanvasGroup.alpha = 0.5f;
+                    sliderCanvasGroup.blocksRaycasts = false;
+                    sellQuantitySlider.interactable = false;
+
+                    if (sellAmountText != null)
+                    {
+                        sellAmountText.text = "0 / 0";
+                    }
+                }
+            }
+        }
+
+        // --- Buy ãƒ­ã‚¸ãƒƒã‚¯ ---
+
+        public MagicData GetShopSlotMagic(int index) => (index >= 0 && index < currentShopMagics.Length) ? currentShopMagics[index] : null;
+        public MagicData GetBuyPendingMagic() => pendingBuyMagic;
+
+        public void SetBuyPendingMagic(MagicData magic, int shopIndex)
+        {
+            // æ’ä»–å‡¦ç†ï¼šBuyã«ã‚»ãƒƒãƒˆã™ã‚‹æ™‚ã€Sellã«ã‚¢ã‚¤ãƒ†ãƒ ãŒã‚ã‚Œã°ã‚¤ãƒ³ãƒ™ãƒ³ãƒˆãƒªã¸æˆ»ã—ã¦ã‚¯ãƒªã‚¢
+            if (sellPendingItem != null)
+            {
+                ClearSellPendingInternal();
+            }
+
+            pendingBuyMagic = magic;
+            pendingShopIndex = shopIndex;
+            UpdateAllUI();
+        }
+
+        public void ClearBuyPending()
+        {
+            ClearBuyPendingInternal();
+            UpdateAllUI();
+        }
+
+        private void ClearBuyPendingInternal()
+        {
+            pendingBuyMagic = null;
+            pendingShopIndex = -1;
+        }
+
+        public void ConfirmBuy()
+        {
+            if (pendingBuyMagic == null || playerInventory == null) return;
+
+            if (playerInventory.coins < pendingBuyMagic.buyPrice)
+            {
+                Debug.Log("[ShopManager] æ‰€æŒã‚³ã‚¤ãƒ³ãŒè¶³ã‚Šã¾ã›ã‚“ï¼");
+                return;
+            }
+
+            playerInventory.coins -= pendingBuyMagic.buyPrice;
+            playerInventory.AddItem(pendingBuyMagic, 1);
+
+            // è³¼å…¥ç¢ºå®šå¾Œã€è©²å½“ã®ã‚·ãƒ§ãƒƒãƒ—å•†å“ã‚’æ¶ˆå»
+            if (pendingShopIndex >= 0 && pendingShopIndex < currentShopMagics.Length)
+            {
+                currentShopMagics[pendingShopIndex] = null;
+            }
+            pendingBuyMagic = null;
+            pendingShopIndex = -1;
+
+            // è³¼å…¥ç¢ºå®šæ™‚ã¯å·¦è©°ã‚ã‚’å®Ÿè¡Œ
+            playerInventory.CompactInventory();
+            UpdateAllUI();
+        }
+
+        // --- Sell ãƒ­ã‚¸ãƒƒã‚¯ ---
+
+        public ItemData GetSellSlotItem() => sellPendingItem;
+        public int GetSellSlotTotalAmount() => sellPendingTotalAmount;
+        public int GetSellSlotSelectAmount() => sellPendingSelectAmount;
+
+        public void SetSellSlotItem(ItemData item, int amount, int fromInvIndex)
+        {
+            // æ’ä»–å‡¦ç†ï¼šSellã«ã‚»ãƒƒãƒˆã™ã‚‹æ™‚ã€Buyã«ã‚¢ã‚¤ãƒ†ãƒ ãŒã‚ã‚Œã°ã‚­ãƒ£ãƒ³ã‚»ãƒ«ã™ã‚‹
+            if (pendingBuyMagic != null)
+            {
+                ClearBuyPendingInternal();
+            }
+
+            // ã‚‚ã—ã™ã§ã«åˆ¥ã®ã‚¢ã‚¤ãƒ†ãƒ ãŒSellæ ã«å…¥ã£ã¦ã„ãŸã‚‰ã‚¤ãƒ³ãƒ™ãƒ³ãƒˆãƒªã¸æˆ»ã™
+            if (sellPendingItem != null)
+            {
+                ClearSellPendingInternal();
+            }
+
+            sellPendingItem = item;
+            sellPendingTotalAmount = amount; // æ‰€æŒæ•°ã‚’è¨˜éŒ²
+            sellPendingSelectAmount = 1;     // åˆæœŸé¸æŠæ•°ã¯ 1
+            sellFromInventoryIndex = fromInvIndex;
+            UpdateAllUI();
+        }
+
+        public void ClearSellPending()
+        {
+            ClearSellPendingInternal();
+            // ã‚­ãƒ£ãƒ³ã‚»ãƒ«ã—ã¦æˆ»ã—ãŸå¾Œã¯ç¶ºéº—ã«è©°ã‚ã‚‹
+            if (playerInventory != null) playerInventory.CompactInventory();
+            UpdateAllUI();
+        }
+
+        private void ClearSellPendingInternal()
+        {
+            if (sellPendingItem != null && sellPendingTotalAmount > 0 && playerInventory != null)
+            {
+                playerInventory.AddItem(sellPendingItem, sellPendingTotalAmount);
+            }
+
+            sellPendingItem = null;
+            sellPendingTotalAmount = 0;
+            sellPendingSelectAmount = 1;
+            sellFromInventoryIndex = -1;
+        }
+
+        public ItemData ExtractSellPendingItem(out int totalAmount)
+        {
+            ItemData item = sellPendingItem;
+            totalAmount = sellPendingTotalAmount;
+
+            sellPendingItem = null;
+            sellPendingTotalAmount = 0;
+            sellPendingSelectAmount = 1;
+            sellFromInventoryIndex = -1;
+
+            return item;
+        }
+
+        public void OnSellSliderValueChanged(float value)
+        {
+            sellPendingSelectAmount = Mathf.Clamp((int)value, 1, Mathf.Max(1, sellPendingTotalAmount));
+
+            if (sellPendingItem != null && transactionPriceText != null)
+            {
+                int totalPrice = sellPendingItem.sellPrice * sellPendingSelectAmount;
+                transactionPriceText.text = $"+{totalPrice}";
+                if (sellAmountText != null) sellAmountText.text = $"{sellPendingSelectAmount} / {sellPendingTotalAmount}";
+            }
+        }
+
+        public void ConfirmSell()
+        {
+            if (sellPendingItem == null || sellPendingTotalAmount <= 0 || playerInventory == null) return;
+
+            int gainCoins = sellPendingItem.sellPrice * sellPendingSelectAmount;
+            playerInventory.coins += gainCoins;
+
+            int remainCount = sellPendingTotalAmount - sellPendingSelectAmount;
+
+            // å£²å´ã—ãªã‹ã£ãŸæ®‹ã‚Šã®å€‹æ•°ã‚’ã‚¤ãƒ³ãƒ™ãƒ³ãƒˆãƒªã«æˆ»ã™
+            if (remainCount > 0)
+            {
+                playerInventory.AddItem(sellPendingItem, remainCount);
+            }
+
+            sellPendingItem = null;
+            sellPendingTotalAmount = 0;
+            sellPendingSelectAmount = 1;
+            sellFromInventoryIndex = -1;
+
+            // å£²å´ç¢ºå®šå¾Œã¯ç©ºããŒã§ãã‚‹ã®ã§å·¦è©°ã‚ã‚’å®Ÿè¡Œ
+            playerInventory.CompactInventory();
+            UpdateAllUI();
+        }
+
+        private void OnExitButtonClicked()
+        {
+            if (GameSceneManager.Instance != null)
+            {
+                GameSceneManager.Instance.ChangeScene(nextSceneName);
+            }
+        }
     }
 }

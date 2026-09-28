@@ -1,247 +1,381 @@
 using UnityEngine;
+using UnityEngine.UI;
 using UnityEngine.EventSystems;
+using TMPro;
 
 namespace MagicRogue
 {
-    public enum SlotType
-    {
-        Inventory,  // インベントリ
-        ShopSlot,   // ショップ商品枠
-        BuyPending, // Buy（購入待機）枠
-        SellSlot,   // Sell（売却）枠
-        AttackSlot  // Attack（魔法）枠
-    }
-
-    public class ItemSlotUI : MonoBehaviour, IDropHandler
+    public class ItemSlotUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IDropHandler, IEndDragHandler
     {
         [Header("スロット設定")]
         public SlotType slotType = SlotType.Inventory;
-
-        [Tooltip("自動生成時に割り当てられるインデックス（手動設定も可能）")]
         public int slotIndex = 0;
 
-        [Header("見た目の配置設定")]
-        [Tooltip("ドロップしたアイコンを配置したい場所（未指定の場合はこのTransform自体）")]
-        [SerializeField] private Transform iconTransform;
+        [Header("UI参照")]
+        [SerializeField] protected Image slotItemImage;
+        [SerializeField] protected TextMeshProUGUI itemCountText;
+
+        [Header("ドラッグUI設定")]
+        [SerializeField] private GameObject dragItemPrefab;
+        private GameObject draggingObject;
+        private Transform canvasTransform;
 
         private void Awake()
         {
-            // iconTransform が未設定の場合は自分自身を配置先に指定
-            if (iconTransform == null)
-            {
-                iconTransform = transform;
-            }
+            Canvas canvas = FindFirstObjectByType<Canvas>();
+            if (canvas != null) canvasTransform = canvas.transform;
         }
 
-        /// <summary>
-        /// アイコンを実際に配置すべき Transform を取得
-        /// </summary>
-        public Transform IconTransform => iconTransform != null ? iconTransform : transform;
-
-        /// <summary>
-        /// 自動生成時にインデックスとタイプをセットする初期化メソッド
-        /// </summary>
         public void SetupSlot(SlotType type, int index)
         {
             slotType = type;
             slotIndex = index;
+            UpdateSlotUI();
+        }
+
+        private void OnEnable()
+        {
+            UpdateSlotUI();
+        }
+
+        public void UpdateSlotUI()
+        {
+            if (ShopManager.Instance == null) return;
+            InventorySO inventory = ShopManager.Instance.GetPlayerInventory();
+
+            ItemData displayItem = null;
+            int displayAmount = 0;
+
+            switch (slotType)
+            {
+                case SlotType.Inventory:
+                    if (inventory != null && inventory.inventorySlots != null && slotIndex < inventory.inventorySlots.Length)
+                    {
+                        var stack = inventory.inventorySlots[slotIndex];
+                        if (stack != null && stack.itemData != null)
+                        {
+                            displayItem = stack.itemData;
+                            displayAmount = stack.amount;
+                        }
+                    }
+                    break;
+
+                case SlotType.AttackSlot:
+                    if (inventory != null && inventory.spellSlots != null && slotIndex < inventory.spellSlots.Length)
+                    {
+                        displayItem = inventory.spellSlots[slotIndex];
+                        displayAmount = 1;
+                    }
+                    break;
+
+                case SlotType.ShopSlot:
+                    displayItem = ShopManager.Instance.GetShopSlotMagic(slotIndex);
+                    displayAmount = 1;
+                    break;
+
+                case SlotType.BuyPending:
+                    displayItem = ShopManager.Instance.GetBuyPendingMagic();
+                    displayAmount = 1;
+                    break;
+
+                case SlotType.SellSlot:
+                    displayItem = ShopManager.Instance.GetSellSlotItem();
+                    displayAmount = ShopManager.Instance.GetSellSlotTotalAmount();
+                    break;
+            }
+
+            // 表示の反映
+            if (displayItem != null && displayItem.icon != null)
+            {
+                if (slotItemImage != null)
+                {
+                    slotItemImage.sprite = displayItem.icon;
+                    slotItemImage.color = Color.white;
+                }
+                if (itemCountText != null)
+                {
+                    itemCountText.text = displayAmount > 1 ? $"x{displayAmount}" : "";
+                }
+            }
+            else
+            {
+                if (slotItemImage != null)
+                {
+                    slotItemImage.sprite = null;
+                    slotItemImage.color = Color.clear;
+                }
+                if (itemCountText != null)
+                {
+                    itemCountText.text = "";
+                }
+            }
+        }
+
+        public void OnBeginDrag(PointerEventData eventData)
+        {
+            ItemData currentItem = GetCurrentItemData();
+            if (currentItem == null) return;
+
+            if (HandController.Instance != null)
+            {
+                HandController.Instance.SetDropped(false);
+                HandController.Instance.SetDragSource(slotType, slotIndex);
+                HandController.Instance.SetGrabbingItem(currentItem);
+            }
+
+            if (dragItemPrefab != null && canvasTransform != null)
+            {
+                draggingObject = Instantiate(dragItemPrefab, canvasTransform);
+                draggingObject.transform.SetAsLastSibling();
+
+                Image dragImage = draggingObject.GetComponent<Image>();
+                if (dragImage == null) dragImage = draggingObject.GetComponentInChildren<Image>();
+
+                if (dragImage != null)
+                {
+                    dragImage.sprite = currentItem.icon;
+                    dragImage.color = Color.white;
+                    dragImage.raycastTarget = false;
+                }
+            }
+
+            if (slotItemImage != null) slotItemImage.color = new Color(1f, 1f, 1f, 0.4f);
+        }
+
+        public void OnDrag(PointerEventData eventData)
+        {
+            if (draggingObject != null)
+            {
+                draggingObject.transform.position = eventData.position;
+            }
         }
 
         public void OnDrop(PointerEventData eventData)
         {
-            GameObject droppedObj = eventData.pointerDrag;
-            if (droppedObj == null) return;
+            if (HandController.Instance == null || !HandController.Instance.IsHavingItem()) return;
 
-            DraggableItemUI draggableItem = droppedObj.GetComponent<DraggableItemUI>();
-            if (draggableItem == null) return;
+            ItemData grabbingItem = HandController.Instance.GetGrabbingItem();
+            SlotType fromType = HandController.Instance.DragSourceType;
+            int fromIndex = HandController.Instance.DragIndex;
 
-            ItemSlotUI fromSlot = draggableItem.parentAfterDrag.GetComponent<ItemSlotUI>();
-            if (fromSlot == null || fromSlot == this) return;
+            if (grabbingItem == null) return;
 
-            // ドロップ条件のバリデーションチェック
-            if (!CanDrop(fromSlot, this, draggableItem.CurrentItemData))
-            {
-                Debug.Log($"[Drop Validation] {fromSlot.slotType} から {this.slotType} への移動は許可されていません。");
-                return;
-            }
+            if (!CanDrop(fromType, this.slotType, grabbingItem)) return;
 
-            // データの移動・入れ替え処理の実行
-            HandleSlotDataSwap(fromSlot, this);
+            HandleSlotDataSwap(fromType, fromIndex, this.slotType, this.slotIndex, grabbingItem);
 
-            // ★アイコンの配置先を IconTransform（丸アイコンの位置）に変更
-            draggableItem.parentAfterDrag = IconTransform;
+            HandController.Instance.SetDropped(true);
+            HandController.Instance.Clear();
+
+            ShopManager.Instance?.UpdateAllUI();
         }
 
-        /// <summary>
-        /// ドロップ条件の判定ロジック
-        /// </summary>
-        private bool CanDrop(ItemSlotUI from, ItemSlotUI to, ItemData itemData)
+        public void OnEndDrag(PointerEventData eventData)
         {
-            SlotType fromType = from.slotType;
-            SlotType toType = to.slotType;
-
-            // --- 0. AttackSlotへの投入制限（MagicDataのみ可） ---
-            if (toType == SlotType.AttackSlot)
+            if (draggingObject != null)
             {
-                if (!(itemData is MagicData))
+                Destroy(draggingObject);
+            }
+
+            if (HandController.Instance != null)
+            {
+                if (HandController.Instance.DragSourceType == SlotType.BuyPending && !HandController.Instance.IsDropped())
                 {
-                    Debug.Log("[Drop Filter] AttackSlotには魔法（MagicData）のみセット可能です。");
-                    return false;
+                    ShopManager.Instance?.ClearBuyPending();
                 }
+                else if (HandController.Instance.DragSourceType == SlotType.SellSlot && !HandController.Instance.IsDropped())
+                {
+                    ShopManager.Instance?.ClearSellPending();
+                }
+
+                HandController.Instance.Clear();
             }
 
-            // --- 1. Inventory / AttackSlot >> BuyPending へのドロップ不可 ---
-            if ((fromType == SlotType.Inventory || fromType == SlotType.AttackSlot) && toType == SlotType.BuyPending)
-                return false;
-
-            // --- 2. ShopSlot >> Inventory / AttackSlot / SellSlot への直接ドロップ不可 ---
-            if (fromType == SlotType.ShopSlot && (toType == SlotType.Inventory || toType == SlotType.AttackSlot || toType == SlotType.SellSlot))
-                return false;
-
-            // --- 3. ShopSlot >> BuyPending は許可 ---
-            if (fromType == SlotType.ShopSlot && toType == SlotType.BuyPending)
-                return true;
-
-            // --- 4. BuyPending <<>> SellSlot の相互ドロップ不可 ---
-            if ((fromType == SlotType.BuyPending && toType == SlotType.SellSlot) || (fromType == SlotType.SellSlot && toType == SlotType.BuyPending))
-                return false;
-
-            // --- 5. BuyPending >> Inventory / AttackSlot への移動（購入決定前キャンセル） ---
-            if (fromType == SlotType.BuyPending)
-                return false;
-
-            // --- 6. Inventory, AttackSlot, SellSlot 相互間の移動・入れ替えは許可 ---
-            bool isFromValid = (fromType == SlotType.Inventory || fromType == SlotType.AttackSlot || fromType == SlotType.SellSlot);
-            bool isToValid = (toType == SlotType.Inventory || toType == SlotType.AttackSlot || toType == SlotType.SellSlot);
-
-            if (isFromValid && isToValid)
-            {
-                return true;
-            }
-
-            return false;
+            ShopManager.Instance?.UpdateAllUI();
         }
 
-        /// <summary>
-        /// 実際のデータ変更（InventorySOやShopManagerの更新）
-        /// </summary>
-        private void HandleSlotDataSwap(ItemSlotUI fromSlot, ItemSlotUI toSlot)
+        private ItemData GetCurrentItemData()
+        {
+            if (ShopManager.Instance == null) return null;
+            InventorySO inventory = ShopManager.Instance.GetPlayerInventory();
+
+            switch (slotType)
+            {
+                case SlotType.Inventory:
+                    return (inventory != null && slotIndex < inventory.inventorySlots.Length) ? inventory.inventorySlots[slotIndex]?.itemData : null;
+                case SlotType.AttackSlot:
+                    return (inventory != null && slotIndex < inventory.spellSlots.Length) ? inventory.spellSlots[slotIndex] : null;
+                case SlotType.ShopSlot:
+                    return ShopManager.Instance.GetShopSlotMagic(slotIndex);
+                case SlotType.BuyPending:
+                    return ShopManager.Instance.GetBuyPendingMagic();
+                case SlotType.SellSlot:
+                    return ShopManager.Instance.GetSellSlotItem();
+                default:
+                    return null;
+            }
+        }
+
+        private bool CanDrop(SlotType fromType, SlotType toType, ItemData itemData)
+        {
+            if (toType == SlotType.AttackSlot && !(itemData is MagicData)) return false;
+            if ((fromType == SlotType.Inventory || fromType == SlotType.AttackSlot) && toType == SlotType.BuyPending) return false;
+            if (fromType == SlotType.ShopSlot && toType != SlotType.BuyPending) return false;
+            if (fromType == SlotType.BuyPending && toType == SlotType.SellSlot) return false;
+
+            if (fromType == SlotType.BuyPending) return true;
+
+            return true;
+        }
+
+        private void HandleSlotDataSwap(SlotType fromType, int fromIdx, SlotType toType, int toIdx, ItemData item)
         {
             if (ShopManager.Instance == null) return;
             InventorySO inventory = ShopManager.Instance.GetPlayerInventory();
-            if (inventory == null) return;
 
-            // A. ShopSlot >> BuyPending（購入準備）
-            if (fromSlot.slotType == SlotType.ShopSlot && toSlot.slotType == SlotType.BuyPending)
+            // BuyPending -> 他スロット
+            if (fromType == SlotType.BuyPending)
             {
-                MagicData shopMagic = ShopManager.Instance.GetShopSlotMagic(fromSlot.slotIndex);
-                ShopManager.Instance.SetBuyPendingMagic(shopMagic, fromSlot.slotIndex);
-            }
-            // B. Inventory / AttackSlot <<>> SellSlot
-            else if (fromSlot.slotType == SlotType.SellSlot || toSlot.slotType == SlotType.SellSlot)
-            {
-                HandleSellSlotSwap(fromSlot, toSlot, inventory);
-            }
-            // C. Inventory <<>> AttackSlot 相互移動・入れ替え
-            else if ((fromSlot.slotType == SlotType.Inventory && toSlot.slotType == SlotType.AttackSlot) ||
-                     (fromSlot.slotType == SlotType.AttackSlot && toSlot.slotType == SlotType.Inventory))
-            {
-                HandleInventoryAttackSwap(fromSlot, toSlot, inventory);
-            }
-            // D. Inventory <<>> Inventory 入れ替え
-            else if (fromSlot.slotType == SlotType.Inventory && toSlot.slotType == SlotType.Inventory)
-            {
-                ItemStack temp = inventory.inventorySlots[fromSlot.slotIndex];
-                inventory.inventorySlots[fromSlot.slotIndex] = inventory.inventorySlots[toSlot.slotIndex];
-                inventory.inventorySlots[toSlot.slotIndex] = temp;
-            }
-            // E. AttackSlot <<>> AttackSlot 入れ替え
-            else if (fromSlot.slotType == SlotType.AttackSlot && toSlot.slotType == SlotType.AttackSlot)
-            {
-                MagicData temp = inventory.spellSlots[fromSlot.slotIndex];
-                inventory.spellSlots[fromSlot.slotIndex] = inventory.spellSlots[toSlot.slotIndex];
-                inventory.spellSlots[toSlot.slotIndex] = temp;
+                ShopManager.Instance.ClearBuyPending();
+                return;
             }
 
-            // 全体UI更新
-            if (ShopUIController.Instance != null)
+            // A. ShopSlot -> BuyPending
+            if (fromType == SlotType.ShopSlot && toType == SlotType.BuyPending)
             {
-                ShopUIController.Instance.UpdateShopUI();
-            }
-        }
-
-        private void HandleSellSlotSwap(ItemSlotUI fromSlot, ItemSlotUI toSlot, InventorySO inventory)
-        {
-            // Inventory/AttackSlot >> SellSlot
-            if (toSlot.slotType == SlotType.SellSlot)
-            {
-                if (fromSlot.slotType == SlotType.Inventory)
+                if (item is MagicData magic)
                 {
-                    ItemStack itemStack = inventory.inventorySlots[fromSlot.slotIndex];
-                    if (itemStack != null && itemStack.itemData != null)
+                    ShopManager.Instance.SetBuyPendingMagic(magic, fromIdx);
+                }
+            }
+            // B. Inventory / AttackSlot -> SellSlot
+            else if (toType == SlotType.SellSlot)
+            {
+                if (fromType == SlotType.Inventory)
+                {
+                    ItemStack stack = inventory.inventorySlots[fromIdx];
+                    if (stack != null && stack.itemData != null)
                     {
-                        ShopManager.Instance.SetSellSlotItem(itemStack.itemData, itemStack.amount, fromSlot.slotIndex);
-                        inventory.RemoveItemFromSlot(fromSlot.slotIndex);
+                        ShopManager.Instance.SetSellSlotItem(stack.itemData, stack.amount, fromIdx);
+                        inventory.RemoveItemFromSlot(fromIdx);
+                        // 単純にSell枠へ送っただけ（入れ替えなし）で元の位置が空いたら詰める
+                        inventory.CompactInventory();
                     }
                 }
-                else if (fromSlot.slotType == SlotType.AttackSlot)
+                else if (fromType == SlotType.AttackSlot)
                 {
-                    MagicData magic = inventory.spellSlots[fromSlot.slotIndex];
+                    MagicData magic = inventory.spellSlots[fromIdx];
                     if (magic != null)
                     {
                         ShopManager.Instance.SetSellSlotItem(magic, 1, -1);
-                        inventory.spellSlots[fromSlot.slotIndex] = null;
+                        inventory.spellSlots[fromIdx] = null;
                     }
                 }
             }
-            // SellSlot >> Inventory/AttackSlot（売却前キャンセル）
-            else if (fromSlot.slotType == SlotType.SellSlot)
+            // C. SellSlot -> Inventory / AttackSlot (Sell枠とドロップ先アイテムの相互完全入れ替え)
+            else if (fromType == SlotType.SellSlot)
             {
-                ItemData sellItem = ShopManager.Instance.GetSellSlotItem();
-                int sellTotalAmount = ShopManager.Instance.GetSellSlotTotalAmount();
+                // Sellスロットにあったアイテム情報を抜き出す（勝手なAddItem返還を防止）
+                ItemData sellItem = ShopManager.Instance.ExtractSellPendingItem(out int sellAmount);
 
-                if (sellItem != null && sellTotalAmount > 0)
+                if (sellItem != null && sellAmount > 0)
                 {
-                    if (toSlot.slotType == SlotType.Inventory)
+                    if (toType == SlotType.Inventory)
                     {
-                        inventory.AddItemToSlot(sellItem, sellTotalAmount, toSlot.slotIndex);
-                    }
-                    else if (toSlot.slotType == SlotType.AttackSlot && sellItem is MagicData magic)
-                    {
-                        inventory.spellSlots[toSlot.slotIndex] = magic;
-                    }
+                        // ドロップ先のインベントリスロット情報を保持
+                        ItemStack targetStack = inventory.inventorySlots[toIdx];
+                        ItemData targetItem = targetStack != null ? targetStack.itemData : null;
+                        int targetAmount = targetStack != null ? targetStack.amount : 0;
 
-                    ShopManager.Instance.SetSellSlotItem(null, 0, -1);
+                        // ドロップ先指定位置に Sell にあったアイテムを配置
+                        inventory.inventorySlots[toIdx] = new ItemStack { itemData = sellItem, amount = sellAmount };
+
+                        // ドロップ先に元々アイテムがあった場合：それをそのまま Sell 枠へ差し替える
+                        if (targetItem != null && targetAmount > 0)
+                        {
+                            ShopManager.Instance.SetSellSlotItem(targetItem, targetAmount, toIdx);
+                        }
+                        else
+                        {
+                            // 空きスロットへ置いた場合は詰める
+                            inventory.CompactInventory();
+                        }
+                    }
+                    else if (toType == SlotType.AttackSlot && sellItem is MagicData magic)
+                    {
+                        MagicData targetMagic = inventory.spellSlots[toIdx];
+
+                        inventory.spellSlots[toIdx] = magic;
+
+                        if (sellAmount > 1)
+                        {
+                            inventory.AddItem(magic, sellAmount - 1);
+                        }
+
+                        if (targetMagic != null)
+                        {
+                            ShopManager.Instance.SetSellSlotItem(targetMagic, 1, -1);
+                        }
+                    }
                 }
             }
-        }
-
-        private void HandleInventoryAttackSwap(ItemSlotUI fromSlot, ItemSlotUI toSlot, InventorySO inventory)
-        {
-            if (fromSlot.slotType == SlotType.Inventory && toSlot.slotType == SlotType.AttackSlot)
+            // D. Inventory <-> AttackSlot
+            else if ((fromType == SlotType.Inventory && toType == SlotType.AttackSlot) ||
+                     (fromType == SlotType.AttackSlot && toType == SlotType.Inventory))
             {
-                ItemStack invItem = inventory.inventorySlots[fromSlot.slotIndex];
-                MagicData attackMagic = inventory.spellSlots[toSlot.slotIndex];
-
-                if (invItem != null && invItem.itemData is MagicData newMagic)
+                if (fromType == SlotType.Inventory && toType == SlotType.AttackSlot)
                 {
-                    inventory.spellSlots[toSlot.slotIndex] = newMagic;
+                    ItemStack invItem = inventory.inventorySlots[fromIdx];
+                    MagicData currentAttack = inventory.spellSlots[toIdx];
+
+                    if (invItem != null && invItem.itemData is MagicData newMagic)
+                    {
+                        inventory.spellSlots[toIdx] = newMagic;
+                        if (currentAttack != null)
+                            inventory.inventorySlots[fromIdx] = new ItemStack { itemData = currentAttack, amount = 1 };
+                        else
+                        {
+                            inventory.RemoveItemFromSlot(fromIdx);
+                            inventory.CompactInventory();
+                        }
+                    }
+                }
+                else
+                {
+                    MagicData attackMagic = inventory.spellSlots[fromIdx];
+                    ItemStack targetInvStack = inventory.inventorySlots[toIdx];
+
                     if (attackMagic != null)
-                        inventory.AddItemToSlot(attackMagic, 1, fromSlot.slotIndex);
-                    else
-                        inventory.RemoveItemFromSlot(fromSlot.slotIndex);
+                    {
+                        if (targetInvStack != null && targetInvStack.itemData is MagicData targetMagic)
+                        {
+                            inventory.spellSlots[fromIdx] = targetMagic;
+                            inventory.inventorySlots[toIdx] = new ItemStack { itemData = attackMagic, amount = 1 };
+                        }
+                        else
+                        {
+                            inventory.spellSlots[fromIdx] = (targetInvStack != null && targetInvStack.itemData is MagicData m) ? m : null;
+                            inventory.inventorySlots[toIdx] = new ItemStack { itemData = attackMagic, amount = 1 };
+                        }
+                    }
                 }
             }
-            else if (fromSlot.slotType == SlotType.AttackSlot && toSlot.slotType == SlotType.Inventory)
+            // E. Inventory <-> Inventory (相互位置交換)
+            else if (fromType == SlotType.Inventory && toType == SlotType.Inventory)
             {
-                MagicData attackMagic = inventory.spellSlots[fromSlot.slotIndex];
-                ItemStack invItem = inventory.inventorySlots[toSlot.slotIndex];
+                ItemStack temp = inventory.inventorySlots[fromIdx];
+                inventory.inventorySlots[fromIdx] = inventory.inventorySlots[toIdx];
+                inventory.inventorySlots[toIdx] = temp;
 
-                if (attackMagic != null)
-                {
-                    inventory.spellSlots[fromSlot.slotIndex] = (invItem != null && invItem.itemData is MagicData m) ? m : null;
-                    inventory.AddItemToSlot(attackMagic, 1, toSlot.slotIndex);
-                }
+                // 途中に空きができないように交換後に詰める
+                inventory.CompactInventory();
+            }
+            // F. AttackSlot <-> AttackSlot
+            else if (fromType == SlotType.AttackSlot && toType == SlotType.AttackSlot)
+            {
+                MagicData temp = inventory.spellSlots[fromIdx];
+                inventory.spellSlots[fromIdx] = inventory.spellSlots[toIdx];
+                inventory.spellSlots[toIdx] = temp;
             }
         }
     }

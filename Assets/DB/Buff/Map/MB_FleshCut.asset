@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ce692654fb6d4624ba25fefd9c45e167, type: 3}
+  m_Name: MB_FleshCut
+  m_EditorClassIdentifier: Assembly-CSharp::MagicRogue.BuffData
+  buffName: "\u8089\u3092\u65AC\u3089\u305B\u3066"
+  icon: {fileID: 0}
+  description: "\u30EA\u30B9\u30AF\u3068\u5F15\u304D\u63DB\u3048\u306B\u7206\u767A\u7684\u306A\u706B\u529B\u3092\u5F97\u308B"
+  buffType: 27
+  value: 0.3
+  duration: 99999

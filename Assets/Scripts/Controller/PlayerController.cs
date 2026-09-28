@@ -10,11 +10,9 @@ using UnityEditor;
 
 namespace MagicRogue
 {
-    // カスタムプログレスバー属性
     public class CustomProgressBarAttribute : PropertyAttribute { }
 
 #if UNITY_EDITOR
-    // インスペクター上にプログレスバーを描画するエディター拡張
     [CustomPropertyDrawer(typeof(CustomProgressBarAttribute))]
     public class CustomProgressBarDrawer : PropertyDrawer
     {
@@ -34,7 +32,6 @@ namespace MagicRogue
     }
 #endif
 
-    // インスペクター表示用の構造体
     [Serializable]
     public struct SpellDebugInfo
     {
@@ -60,7 +57,6 @@ namespace MagicRogue
         [SerializeField] private float baseMoveSpeed = 5f;
 
         [Header("連射設定")]
-        [Tooltip("同じ魔法を複数装備している場合の発射間隔（秒）")]
         [SerializeField] private float duplicateSpellDelay = 0.15f;
 
         [Header("インベントリ参照")]
@@ -78,7 +74,6 @@ namespace MagicRogue
         public InventorySO Inventory => inventory;
         public float CurrentHp => currentHp;
 
-        // 最大HP（MaxHpUp バフを反映）
         public float MaxHp
         {
             get
@@ -94,7 +89,6 @@ namespace MagicRogue
         private readonly Dictionary<int, float> cooldownTimers = new Dictionary<int, float>();
         private readonly HashSet<MagicData> pendingSpells = new HashSet<MagicData>();
 
-        // シーン遷移演出用の制御フラグ
         private bool isInvincible = false;
         private bool isControlActive = true;
 
@@ -112,19 +106,16 @@ namespace MagicRogue
 
         private void Start()
         {
-            // 1. 出撃前画面で選択されたバフを適用
             if (GameSceneManager.Instance != null && buffHandler != null)
             {
                 GameSceneManager.Instance.ApplyAllBuffsToPlayer(buffHandler);
             }
 
-            // 2. バフ計算が完了したあとの MaxHp で currentHp を初期化する
             currentHp = MaxHp;
         }
 
         private void Update()
         {
-            // 操作不能（魔法陣を踏んだ後の吸い寄せ中など）時は移動・攻撃の入力をスキップ
             if (!isControlActive) return;
 
             HandleMovement();
@@ -133,18 +124,12 @@ namespace MagicRogue
             UpdateDebugInfo();
         }
 
-        /// <summary>
-        /// 無敵状態を設定する
-        /// </summary>
         public void SetInvincible(bool state)
         {
             isInvincible = state;
             Debug.Log($"[Player] 無敵状態: {isInvincible}");
         }
 
-        /// <summary>
-        /// プレイヤーの操作可能状態を設定する（false でキー移動・自動攻撃を停止）
-        /// </summary>
         public void SetControlActive(bool state)
         {
             isControlActive = state;
@@ -169,26 +154,22 @@ namespace MagicRogue
             {
                 Vector3 moveDirection = rawInput;
 
-                // メインカメラの向きに合わせて移動ベクトルを計算
                 if (Camera.main != null)
                 {
                     Vector3 camForward = Camera.main.transform.forward;
                     Vector3 camRight = Camera.main.transform.right;
 
-                    // 高さを無視して平面ベクトル化
                     camForward.y = 0f;
                     camRight.y = 0f;
                     camForward.Normalize();
                     camRight.Normalize();
 
-                    // カメラ視点に基づいた移動方向の算出
                     moveDirection = (camForward * rawInput.z) + (camRight * rawInput.x);
                 }
 
                 float moveSpeed = baseMoveSpeed;
                 characterController.Move(moveDirection * moveSpeed * Time.deltaTime);
 
-                // ロックオン中でない場合のみ、移動入力の方向へ向きを変える
                 if (targetLockSystem == null || !targetLockSystem.IsLockedOn)
                 {
                     Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
@@ -222,19 +203,9 @@ namespace MagicRogue
                 MagicData magic = inventory.spellSlots[i];
                 if (magic == null) continue;
 
-                // クールタイム中の場合はスキップ
-                if (cooldownTimers.TryGetValue(i, out float remaining) && remaining > 0f)
-                {
-                    continue;
-                }
+                if (cooldownTimers.TryGetValue(i, out float remaining) && remaining > 0f) continue;
+                if (pendingSpells.Contains(magic)) continue;
 
-                // すでに同種魔法のディレイ発射待ち（Pending）ならスキップ
-                if (pendingSpells.Contains(magic))
-                {
-                    continue;
-                }
-
-                // ディレイをつけて順次発射するコルーチンを実行
                 StartCoroutine(CastSpellWithDelay(i, magic));
             }
         }
@@ -245,7 +216,6 @@ namespace MagicRogue
 
             CastSpell(slotIndex);
 
-            // 連続発射用のテンポ（初期値0.15秒）だけ待機
             yield return new WaitForSeconds(duplicateSpellDelay);
 
             pendingSpells.Remove(magic);
@@ -342,8 +312,13 @@ namespace MagicRogue
 
         public void TakeDamage(float damageAmount)
         {
-            // 無敵状態ならダメージを受けない
             if (isInvincible) return;
+
+            // 被弾時トリガー（聖なる守りの無効化判定を含む）
+            if (buffHandler != null && buffHandler.OnPlayerTakeDamage())
+            {
+                return; // 被弾キャンセル
+            }
 
             float damageMult = buffHandler != null ? buffHandler.GetMultiplier(BuffType.DamageReceivedUp) : 1f;
             float finalDamage = Mathf.Max(1f, damageAmount * damageMult);

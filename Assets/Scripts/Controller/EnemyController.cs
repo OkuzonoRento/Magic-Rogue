@@ -70,17 +70,25 @@ namespace MagicRogue
         {
             spawnPosition = transform.position;
 
+            if (GameSceneManager.Instance != null && buffHandler != null)
+            {
+                GameSceneManager.Instance.ApplyAllBuffsToEnemy(buffHandler);
+            }
+
+            float statMult = (buffHandler != null) ? buffHandler.GetMultiplier(BuffType.EnemyStatUp, BuffType.EnemyStatDown) : 1.0f;
+
             if (enemyData != null)
             {
-                currentHp = enemyData.maxHp;
-                agent.speed = enemyData.moveSpeed;
+                currentHp = enemyData.maxHp * statMult;
+                agent.speed = enemyData.moveSpeed * statMult;
+
                 agent.stoppingDistance = GetCenterAttackRange();
                 agent.obstacleAvoidanceType = ObstacleAvoidanceType.HighQualityObstacleAvoidance;
                 agent.avoidancePriority = Random.Range(30, 60);
             }
             else
             {
-                currentHp = 50f;
+                currentHp = 50f * statMult;
             }
 
             wanderTimer = wanderInterval;
@@ -303,6 +311,12 @@ namespace MagicRogue
             StopAllCoroutines();
             if (agent != null && agent.isActiveAndEnabled) agent.isStopped = true;
 
+            // 撃破キルカウント処理（神仙へと至る道）
+            if (targetPlayer != null && targetPlayer.TryGetComponent<BuffHandler>(out var playerBuffs))
+            {
+                playerBuffs.RegisterKill();
+            }
+
             DropItems();
             Destroy(gameObject);
         }
@@ -315,7 +329,6 @@ namespace MagicRogue
             {
                 if (dropInfo.item == null) continue;
 
-                // プレイヤーのドロップ倍率を取得
                 float dropMult = 1f;
                 if (targetPlayer != null && targetPlayer.TryGetComponent<BuffHandler>(out var playerBuffs))
                 {
@@ -346,13 +359,13 @@ namespace MagicRogue
 
             if (isHit)
             {
-                if (buffHandler == null)
-                {
-                    buffHandler = GetComponent<BuffHandler>();
-                }
+                if (buffHandler == null) buffHandler = GetComponent<BuffHandler>();
 
-                float atkMult = (buffHandler != null) ? buffHandler.GetMultiplier(BuffType.AttackUp) : 1.0f;
-                targetPlayer.TakeDamage(pattern.damage * atkMult);
+                float selfAtkMult = (buffHandler != null) ? buffHandler.GetMultiplier(BuffType.AttackUp, BuffType.AttackDown) : 1.0f;
+                float statMult = (buffHandler != null) ? buffHandler.GetMultiplier(BuffType.EnemyStatUp, BuffType.EnemyStatDown) : 1.0f;
+
+                float finalDamage = pattern.damage * selfAtkMult * statMult;
+                targetPlayer.TakeDamage(finalDamage);
             }
         }
     }

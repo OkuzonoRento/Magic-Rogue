@@ -45,7 +45,15 @@ namespace MagicRogue
         public void SelectMap(string mapName)
         {
             selectedMapName = mapName;
+
+            // マップ選択時に前マップの選択Mapバフをクリア
             selectedMapBuffs.Clear();
+
+            // MapBuffManager 側の実バフもリセット
+            if (MapBuffManager.Instance != null)
+            {
+                MapBuffManager.Instance.ResetMapBuffs();
+            }
         }
 
         public void ToggleMapBuff(BuffData buff, bool isSelected)
@@ -67,6 +75,11 @@ namespace MagicRogue
             selectedGlobalBuffs.Clear();
             selectedMapBuffs.Clear();
             selectedMapName = string.Empty;
+
+            if (MapBuffManager.Instance != null)
+            {
+                MapBuffManager.Instance.ResetMapBuffs();
+            }
         }
 
         #endregion
@@ -74,23 +87,56 @@ namespace MagicRogue
         #region ステージ適用＆シーン遷移
 
         /// <summary>
-        /// ゲームステージ開始時、Global ＋ Map の全バフを一括適用
+        /// ゲームステージ開始時、Global ＋ Map の全バフをプレイヤーに一括適用
         /// </summary>
         public void ApplyAllBuffsToPlayer(BuffHandler playerBuffHandler)
         {
             if (playerBuffHandler == null) return;
 
+            // Globalバフの適用
             foreach (var buff in selectedGlobalBuffs)
             {
                 if (buff != null) playerBuffHandler.AddBuff(buff.buffType, buff.value, 99999f);
             }
 
-            foreach (var buff in selectedMapBuffs)
+            // Mapバフの適用（MapBuffManager 経由で一括管理）
+            if (MapBuffManager.Instance != null)
             {
-                if (buff != null) playerBuffHandler.AddBuff(buff.buffType, buff.value, 99999f);
+                MapBuffManager.Instance.SetAndApplyMapBuffs(selectedMapBuffs, playerBuffHandler);
+            }
+            else
+            {
+                foreach (var buff in selectedMapBuffs)
+                {
+                    if (buff != null) playerBuffHandler.AddBuff(buff.buffType, buff.value, 99999f);
+                }
             }
 
-            Debug.Log($"[GameSceneManager] Global:{selectedGlobalBuffs.Count}個, Map:{selectedMapBuffs.Count}個 のバフを適用しました。");
+            Debug.Log($"[GameSceneManager] Global:{selectedGlobalBuffs.Count}個, Map:{selectedMapBuffs.Count}個 のバフをプレイヤーに適用しました。");
+        }
+
+        /// <summary>
+        /// 敵全体に影響を与えるバフ/デバフ（EnemyStatUp / EnemyStatDown 等）を適用
+        /// </summary>
+        public void ApplyAllBuffsToEnemy(BuffHandler enemyBuffHandler)
+        {
+            if (enemyBuffHandler == null) return;
+
+            foreach (var buff in selectedGlobalBuffs)
+            {
+                if (buff != null && (buff.buffType == BuffType.EnemyStatUp || buff.buffType == BuffType.EnemyStatDown))
+                {
+                    enemyBuffHandler.AddBuff(buff.buffType, buff.value, 99999f);
+                }
+            }
+
+            foreach (var buff in selectedMapBuffs)
+            {
+                if (buff != null && (buff.buffType == BuffType.EnemyStatUp || buff.buffType == BuffType.EnemyStatDown))
+                {
+                    enemyBuffHandler.AddBuff(buff.buffType, buff.value, 99999f);
+                }
+            }
         }
 
         /// <summary>

@@ -5,9 +5,9 @@ using System.IO;
 
 namespace MagicRogue
 {
-    public static class BuffDataGenerator
+    public static class GlobalBuffDataGenerator
     {
-        [MenuItem("MagicRogue/Create All Buff Assets")]
+        [MenuItem("MagicRogue/Create All Global Buff Assets")]
         public static void CreateAllBuffs()
         {
             string buffFolderPath = "Assets/DB/Buff/Global/Buffs";
