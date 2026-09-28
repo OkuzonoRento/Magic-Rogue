@@ -1180,9 +1180,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7e79165928bb66a4fa8e76cbeea026a7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MagicRogue.GameSceneManager
-  selectedGlobalBuffs:
-  - {fileID: 11400000, guid: e42be07c126211c43b5f581117e924cc, type: 2}
-  selectedMapBuffs: []
+  selectedGlobalBuffs: []
+  selectedMapBuffs:
+  - {fileID: 11400000, guid: ffb4a12a70382b945ba23070f18c57c1, type: 2}
   selectedMapName: 
 --- !u!4 &1647328383
 Transform:

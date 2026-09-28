@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MagicRogue.InventorySO
   coins: 4150
   spellSlots:
-  - {fileID: 0}
+  - {fileID: 11400000, guid: e8cfb20c3332d3b40afd02acb2f11968, type: 2}
   - {fileID: 0}
   - {fileID: 0}
   inventorySlots:
@@ -28,10 +28,10 @@ MonoBehaviour:
     amount: 1
   - itemData: {fileID: 11400000, guid: ce1f8fe535a38294d86c026334a53e7b, type: 2}
     amount: 44
-  - itemData: {fileID: 0}
-    amount: 0
-  - itemData: {fileID: 0}
-    amount: 0
+  - itemData: {fileID: 11400000, guid: ce1f8fe535a38294d86c026334a53e7b, type: 2}
+    amount: 1
+  - itemData: {fileID: 11400000, guid: ce1f8fe535a38294d86c026334a53e7b, type: 2}
+    amount: 1
   - itemData: {fileID: 0}
     amount: 0
   - itemData: {fileID: 0}

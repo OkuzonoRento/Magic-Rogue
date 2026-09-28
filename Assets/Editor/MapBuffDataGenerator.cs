@@ -33,7 +33,6 @@ namespace MagicRogue
                 (BuffType.Stepper,          "MB_Stepper",          "ステッパー", 0.2f, 99999f, "移動中に攻撃力が上昇する"),
                 (BuffType.FrogInAWell,      "MB_FrogInAWell",      "井の中の蛙", 0.5f, 99999f, "スロット一致で超強化、不一致で弱体化"),
                 (BuffType.PathToAscension,  "MB_PathToAscension",  "修羅の道", 2.0f, 99999f, "初期大幅弱体化。一定数撃破で無敵覚醒"),
-                (BuffType.Abyss,            "MB_Abyss",            "深淵", 1.0f, 99999f, "ヒット時に吸引エリアを生成する"),
                 (BuffType.LastStand,        "MB_LastStand",        "背水の陣", 0.8f, 99999f, "HP20%以下で攻撃力が大幅に上昇する"),
                 (BuffType.MagicCirculation, "MB_MagicCirculation", "魔力循環", 0.05f, 99999f, "連続ヒットで攻撃速度とCD短縮"),
                 (BuffType.FleshCut,         "MB_FleshCut",         "肉を斬らせて", 0.3f, 99999f, "リスクと引き換えに爆発的な火力を得る")

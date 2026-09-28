@@ -8,7 +8,7 @@ namespace MagicRogue
     public struct RarityModelConfig
     {
         public ItemRarity rarity;
-        public GameObject modelPrefab; // レアリティごとの共通モデル（箱やオーラなど）
+        public GameObject modelPrefab;
     }
 
     [RequireComponent(typeof(Collider))]
@@ -37,6 +37,7 @@ namespace MagicRogue
         [SerializeField] private float collectRadius = 0.8f;
 
         private Transform playerTransform;
+        private BuffHandler playerBuffHandler; // 追加: プレイヤーの BuffHandler 参照
         private Vector3 basePos;
         private Vector3 spawnStartPos;
         private Vector3 spawnTargetPos;
@@ -49,8 +50,7 @@ namespace MagicRogue
         {
             GetComponent<Collider>().isTrigger = true;
 
-            GameObject player = GameObject.FindGameObjectWithTag("Player");
-            if (player != null) playerTransform = player.transform;
+            FindPlayerReferences();
 
             if (popOnSpawn)
             {
@@ -59,6 +59,16 @@ namespace MagicRogue
             else
             {
                 basePos = transform.position;
+            }
+        }
+
+        private void FindPlayerReferences()
+        {
+            GameObject player = GameObject.FindGameObjectWithTag("Player");
+            if (player != null)
+            {
+                playerTransform = player.transform;
+                playerBuffHandler = player.GetComponent<BuffHandler>();
             }
         }
 
@@ -76,14 +86,10 @@ namespace MagicRogue
             }
         }
 
-        /// <summary>
-        /// レアリティまたは個別設定に応じてモデルを生成
-        /// </summary>
         private void GenerateWorldModel()
         {
             if (itemData == null) return;
 
-            // 既存の子要素モデルをクリア
             foreach (Transform child in transform)
             {
                 Destroy(child.gameObject);
@@ -91,18 +97,15 @@ namespace MagicRogue
 
             GameObject modelToSpawn = null;
 
-            // 1. 個別の専用モデルが設定されているか確認
             if (itemData.customWorldModelPrefab != null)
             {
                 modelToSpawn = itemData.customWorldModelPrefab;
             }
-            // 2. なければレアリティに応じたモデルを取得
             else
             {
                 modelToSpawn = GetModelByRarity(itemData.rarity);
             }
 
-            // 3. モデルを生成して子要素にする
             if (modelToSpawn != null)
             {
                 Instantiate(modelToSpawn, transform);
@@ -137,12 +140,10 @@ namespace MagicRogue
         {
             if (itemData == null) return;
 
-            // プレイヤーが未取得なら再検索（シーン読み込みタイミング等の対策）
             if (playerTransform == null)
             {
-                GameObject player = GameObject.FindGameObjectWithTag("Player");
-                if (player != null) playerTransform = player.transform;
-                else return; // プレイヤーがいなければ処理をスキップ
+                FindPlayerReferences();
+                if (playerTransform == null) return;
             }
 
             // Y軸自転
@@ -154,11 +155,19 @@ namespace MagicRogue
                 return;
             }
 
-            if (playerTransform == null) return;
-
             float distanceToPlayer = Vector3.Distance(transform.position, playerTransform.position);
 
-            if (distanceToPlayer <= magnetRadius)
+            // --- 追加: 【盗掘者 (GraveRobber)】 回収範囲の拡張判定 ---
+            float currentMagnetRadius = magnetRadius;
+            if (playerBuffHandler != null)
+            {
+                if (playerBuffHandler.HasBuff(BuffType.GraveRobber))
+                {
+                    currentMagnetRadius *= 1.8f; // 回収範囲を 80% 拡大
+                }
+            }
+
+            if (distanceToPlayer <= currentMagnetRadius)
             {
                 isMagnetized = true;
             }
@@ -209,6 +218,12 @@ namespace MagicRogue
 
                     if (added)
                     {
+                        // 追加: 【盗掘者】拾った際の攻撃力UPトリガー実行
+                        if (playerBuffHandler != null)
+                        {
+                            playerBuffHandler.OnItemPickedUp();
+                        }
+
                         Debug.Log($"[Pickup] {itemData.itemName} x{amount} をインベントリに追加しました（売却値: {itemData.sellPrice}G）");
                         Destroy(gameObject);
                     }

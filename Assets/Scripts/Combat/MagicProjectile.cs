@@ -214,6 +214,22 @@ namespace MagicRogue
                 enemy.TakeDamage(finalDamage);
             }
 
+            // プレイヤーの BuffHandler 取得とMapバフ判定
+            if (ownerPlayer != null && ownerPlayer.TryGetComponent<BuffHandler>(out var playerBuffs))
+            {
+                // 魔力循環 (MagicCirculation) コンボ更新
+                playerBuffs.OnMagicHitEnemy();
+
+                // 【呪術師の杖 (CurseStaff)】 敵にステータス低下デバフを付与
+                if (playerBuffs.HasBuff(BuffType.CurseStaff))
+                {
+                    if (enemyObj.TryGetComponent<BuffHandler>(out var enemyBuffs))
+                    {
+                        enemyBuffs.AddBuff(BuffType.EnemyStatDown, 0.2f, 5f);
+                    }
+                }
+            }
+
             PlayHitVFX();
         }
 
