@@ -30,5 +30,12 @@ namespace MagicRogue
 
         [Tooltip("スポーン間隔（秒）")]
         public float spawnInterval = 3f;
+
+        [Header("クリア・ポータル設定")]
+        [Tooltip("ステージクリアに必要な敵撃破数")]
+        public int targetKillCount = 15;
+
+        [Tooltip("クリア時に出現するポータルのプレハブ")]
+        public GameObject portalPrefab;
     }
 }

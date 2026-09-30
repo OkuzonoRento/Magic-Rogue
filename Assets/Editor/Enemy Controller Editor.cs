@@ -23,9 +23,11 @@ namespace MagicRogue
         [DrawGizmo(GizmoType.InSelectionHierarchy | GizmoType.NotInSelectionHierarchy | GizmoType.Pickable)]
         private static void RenderCustomGizmos(EnemyController enemy, GizmoType gizmoType)
         {
-            if (enemy == null || enemy.enemyData == null) return;
+            // Åö enemy.enemyData Ç©ÇÁ enemy.Data Ç…ïœçX
+            if (enemy == null || enemy.Data == null) return;
 
-            EnemyData data = enemy.enemyData;
+            // Åö enemy.enemyData Ç©ÇÁ enemy.Data Ç…ïœçX
+            EnemyData data = enemy.Data;
             Vector3 pos = enemy.transform.position;
             Vector3 forward = enemy.transform.forward;
 

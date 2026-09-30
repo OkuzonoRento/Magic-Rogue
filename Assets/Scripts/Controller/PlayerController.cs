@@ -35,17 +35,10 @@ namespace MagicRogue
     [Serializable]
     public struct SpellDebugInfo
     {
-        [Tooltip("装備中の魔法データ")]
         public MagicData magicData;
-
-        [Tooltip("攻撃力")]
         public float damage;
-
-        [Tooltip("最大クールタイム（秒）")]
         public float maxCooldown;
-
-        [CustomProgressBar]
-        public float cooldownProgress;
+        [CustomProgressBar] public float cooldownProgress;
     }
 
     [RequireComponent(typeof(CharacterController))]
@@ -59,16 +52,13 @@ namespace MagicRogue
         [Header("連射設定")]
         [SerializeField] private float duplicateSpellDelay = 0.15f;
 
-        [Header("インベントリ参照")]
+        [Header("インベントリ・コンポーネント参照")]
         [SerializeField] private InventorySO inventory;
-
-        [Header("魔法発射ポイント")]
         [SerializeField] private Transform castPoint;
+        [SerializeField] private Animator animator;
 
-        [Header("デバッグ表示 (現在値)")]
+        [Header("デバッグ表示")]
         [SerializeField] private float currentHp;
-
-        [Header("装備中の魔法情報 (リアルタイムデバッグ)")]
         [SerializeField] private List<SpellDebugInfo> equippedSpellsDebug = new List<SpellDebugInfo>();
 
         public InventorySO Inventory => inventory;
@@ -89,6 +79,7 @@ namespace MagicRogue
         private readonly Dictionary<int, float> cooldownTimers = new Dictionary<int, float>();
         private readonly HashSet<MagicData> pendingSpells = new HashSet<MagicData>();
 
+        private int currentCastingSlot = -1;
         private bool isInvincible = false;
         private bool isControlActive = true;
 
@@ -97,6 +88,7 @@ namespace MagicRogue
             characterController = GetComponent<CharacterController>();
             buffHandler = GetComponent<BuffHandler>();
             targetLockSystem = GetComponent<TargetLockSystem>();
+            if (animator == null) animator = GetComponentInChildren<Animator>();
 
             if (inventory != null)
             {
@@ -124,16 +116,8 @@ namespace MagicRogue
             UpdateDebugInfo();
         }
 
-        public void SetInvincible(bool state)
-        {
-            isInvincible = state;
-            Debug.Log($"[Player] 無敵状態: {isInvincible}");
-        }
-
-        public void SetControlActive(bool state)
-        {
-            isControlActive = state;
-        }
+        public void SetInvincible(bool state) => isInvincible = state;
+        public void SetControlActive(bool state) => isControlActive = state;
 
         private void HandleMovement()
         {
@@ -167,7 +151,9 @@ namespace MagicRogue
                     moveDirection = (camForward * rawInput.z) + (camRight * rawInput.x);
                 }
 
-                float moveSpeed = baseMoveSpeed;
+                float speedMult = buffHandler != null ? buffHandler.GetMultiplier(BuffType.MoveSpeedUp, BuffType.MoveSpeedDown) : 1f;
+                float moveSpeed = baseMoveSpeed * speedMult;
+
                 characterController.Move(moveDirection * moveSpeed * Time.deltaTime);
 
                 if (targetLockSystem == null || !targetLockSystem.IsLockedOn)
@@ -236,6 +222,39 @@ namespace MagicRogue
                 Debug.Log("[Player] 魔法の発動に失敗した！");
                 return;
             }
+
+            // アニメーション再生（設定されている場合）
+            if (animator != null)
+            {
+                currentCastingSlot = slotIndex;
+                animator.SetTrigger("CastMagic");
+            }
+            else
+            {
+                // Animatorがない場合は即時発射
+                ExecuteMagicCast(slotIndex);
+            }
+        }
+
+        /// <summary>
+        /// アニメーションイベントから呼び出される魔法生成・発射メソッド
+        /// (Animation Event name: OnPlayerCastMagicAnimation)
+        /// </summary>
+        public void OnPlayerCastMagicAnimation()
+        {
+            if (currentCastingSlot >= 0)
+            {
+                ExecuteMagicCast(currentCastingSlot);
+                currentCastingSlot = -1;
+            }
+        }
+
+        private void ExecuteMagicCast(int slotIndex)
+        {
+            if (slotIndex < 0 || slotIndex >= inventory.spellSlots.Length) return;
+
+            MagicData magic = inventory.spellSlots[slotIndex];
+            if (magic == null || magic.projectilePrefab == null) return;
 
             if (buffHandler != null)
             {
@@ -314,10 +333,9 @@ namespace MagicRogue
         {
             if (isInvincible) return;
 
-            // 被弾時トリガー（聖なる守りの無効化判定を含む）
             if (buffHandler != null && buffHandler.OnPlayerTakeDamage())
             {
-                return; // 被弾キャンセル
+                return; // 被弾キャンセル（聖なる守りなど）
             }
 
             float damageMult = buffHandler != null ? buffHandler.GetMultiplier(BuffType.DamageReceivedUp) : 1f;

@@ -7,6 +7,8 @@ namespace MagicRogue
 {
     public class EnemySpawner : MonoBehaviour
     {
+        public static EnemySpawner Instance { get; private set; }
+
         [Header("配置済みマップリスト")]
         [SerializeField] private List<MapController> allMaps = new List<MapController>();
 
@@ -14,7 +16,7 @@ namespace MagicRogue
         [SerializeField] private Transform playerTransform;
 
         [Header("スポーン距離設定")]
-        [Tooltip("プレイヤーからの最小距離（視界/サーチ圏外判定）")]
+        [Tooltip("プレイヤーからの最小距離")]
         [SerializeField] private float minSpawnDistance = 15f;
 
         [Tooltip("プレイヤーからの最大距離")]
@@ -27,6 +29,15 @@ namespace MagicRogue
         private readonly List<GameObject> activeEnemies = new List<GameObject>();
         private Coroutine spawnCoroutine;
 
+        private int currentKillCount = 0;
+        private bool isPortalSpawned = false;
+
+        private void Awake()
+        {
+            if (Instance == null) Instance = this;
+            else Destroy(gameObject);
+        }
+
         private void Start()
         {
             if (playerTransform == null)
@@ -35,14 +46,32 @@ namespace MagicRogue
                 if (player != null) playerTransform = player.transform;
             }
 
-            // 初期マップの選択（必要に応じて外部から呼び出してください）
-            SelectMap(0);
+            // GameSceneManager の選択マップ情報に合わせて自動初期化
+            InitializeSelectedMap();
+        }
+
+        private void InitializeSelectedMap()
+        {
+            string selectedName = GameSceneManager.Instance != null
+                ? GameSceneManager.Instance.CurrentSaveData.selectedMapName
+                : string.Empty;
+
+            int targetIndex = 0;
+
+            if (!string.IsNullOrEmpty(selectedName))
+            {
+                int index = allMaps.FindIndex(m => m.MapData != null && m.MapData.mapName == selectedName);
+                if (index >= 0) targetIndex = index;
+            }
+
+            SelectMap(targetIndex);
         }
 
         public void SelectMap(int mapIndex)
         {
             if (mapIndex < 0 || mapIndex >= allMaps.Count) return;
 
+            // 選択されたマップのみをアクティブ化し、それ以外を非アクティブ化
             for (int i = 0; i < allMaps.Count; i++)
             {
                 if (i == mapIndex)
@@ -56,10 +85,9 @@ namespace MagicRogue
                 }
             }
 
-            // プレイヤーをマップ指定のスポーン位置へワープさせる
+            // 1. プレイヤーを選択されたマップのスポーンポイントへ配置
             if (activeMap != null && activeMap.PlayerSpawnPoint != null && playerTransform != null)
             {
-                // CharacterController が付いている場合は移動前に一時無効化する
                 if (playerTransform.TryGetComponent<CharacterController>(out var controller))
                 {
                     controller.enabled = false;
@@ -74,11 +102,32 @@ namespace MagicRogue
                 }
             }
 
-            // 敵のスポーン処理を開始
+            // 2. 撃破カウントなどの初期化
+            currentKillCount = 0;
+            isPortalSpawned = false;
+
+            // 3. 敵スポーンルーチンの開始
             if (spawnCoroutine != null) StopCoroutine(spawnCoroutine);
             if (activeMap != null && activeMap.MapData != null)
             {
                 spawnCoroutine = StartCoroutine(SpawnRoutine());
+            }
+        }
+
+        /// <summary>
+        /// 敵が撃破された際に EnemyController 等から呼び出してもらう通知関数
+        /// </summary>
+        public void OnEnemyKilled()
+        {
+            if (isPortalSpawned || activeMap == null || activeMap.MapData == null) return;
+
+            currentKillCount++;
+            Debug.Log($"[EnemySpawner] 撃破数: {currentKillCount} / {activeMap.MapData.targetKillCount}");
+
+            if (currentKillCount >= activeMap.MapData.targetKillCount)
+            {
+                isPortalSpawned = true;
+                activeMap.SpawnClearPortal();
             }
         }
 
@@ -92,12 +141,12 @@ namespace MagicRogue
 
                 activeEnemies.RemoveAll(enemy => enemy == null);
 
+                // 最大生存制限に達している場合はスポーンしない
                 if (activeEnemies.Count >= mapData.maxEnemyCount)
                 {
                     continue;
                 }
 
-                // マップのNavMesh上から自動計算でスポーン位置を取得
                 if (TryGetAutoNavMeshSpawnPosition(out Vector3 spawnPosition))
                 {
                     GameObject selectedPrefab = SelectRandomEnemyPrefab(mapData);
@@ -110,23 +159,18 @@ namespace MagicRogue
             }
         }
 
-        // NavMeshから自動で有効なスポーン位置を取得（座標登録不要）
         private bool TryGetAutoNavMeshSpawnPosition(out Vector3 result)
         {
             result = Vector3.zero;
             if (playerTransform == null || activeMap == null) return false;
 
-            // プレイヤーの周りかつ視界外（minSpawnDistance 〜 maxSpawnDistance）からランダムサンプリング
             for (int i = 0; i < 15; i++)
             {
-                // プレイヤーを中心としたドーナツ状の範囲からランダムに方向と距離を選出
                 Vector2 randomCircle = Random.insideUnitCircle.normalized * Random.Range(minSpawnDistance, maxSpawnDistance);
                 Vector3 candidatePos = playerTransform.position + new Vector3(randomCircle.x, 0f, randomCircle.y);
 
-                // 選んだランダム座標の足元・近傍に NavMesh があるか確認して吸着
                 if (NavMesh.SamplePosition(candidatePos, out NavMeshHit hit, navMeshSampleDistance, NavMesh.AllAreas))
                 {
-                    // 実際にプレイヤーとの直線距離が視界外か確認
                     if (Vector3.Distance(playerTransform.position, hit.position) >= minSpawnDistance)
                     {
                         result = hit.position;
@@ -147,6 +191,8 @@ namespace MagicRogue
             {
                 totalWeight += config.spawnWeight;
             }
+
+            if (totalWeight <= 0) return null;
 
             int randomValue = Random.Range(0, totalWeight);
             int currentSum = 0;

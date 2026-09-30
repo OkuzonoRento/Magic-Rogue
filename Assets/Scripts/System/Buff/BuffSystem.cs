@@ -21,6 +21,10 @@ namespace MagicRogue
         EnemyStatUp,          // 敵ステータス向上 (%)
         SearchRangeDown,      // サーチ範囲低下 (%)
 
+        // --- 移動速度バフ・デバフ（追加） ---
+        MoveSpeedUp,          // 移動速度増加 (%)
+        MoveSpeedDown,        // 移動速度低下 (%)
+
         // --- Map バフ固有種別 ---
         StationaryTurret,     // 固定砲台（停止中攻撃力UP）
         Overload,             // 魔術回路過剰暴走（前半強体化・後半弱体化）
@@ -32,7 +36,6 @@ namespace MagicRogue
         Stepper,              // ステッパー（移動中攻撃力UP）
         FrogInAWell,          // 井の中の蛙（スロット一致時超強化 / 不一致時弱体）
         PathToAscension,      // 神仙へと至る道（初期超弱体化 ＋ 撃破解禁で無敵覚醒）
-        Abyss,                // 奈落（ヒット時吸引ブラックホール生成）
         LastStand,            // 背水の陣（HP20%以下で攻撃力大幅UP）
         MagicCirculation,     // 魔力循環（連続ヒットで攻撃速度・CD短縮）
         FleshCut              // 肉斬骨断（受けるダメージ・攻撃力・CD悪化 ＋ 被弾時爆発力）

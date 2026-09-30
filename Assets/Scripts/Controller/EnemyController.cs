@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -6,301 +7,420 @@ namespace MagicRogue
 {
     public enum EnemyState
     {
-        IdleOrWander,   // 待機・ランダムウォーク
-        Chasing,        // 追跡
-        Attacking,      // 攻撃中
-        Kiting,         // 後ずさり（攻撃のクールタイム中）
-        GivingUp        // 諦めて初期位置へ帰還中
+        Patrol,     // 徘徊
+        Chase,      // 追跡
+        Attack,     // 攻撃
+        Retreat     // 退避
     }
 
-    [RequireComponent(typeof(BuffHandler))]
     [RequireComponent(typeof(NavMeshAgent))]
     public class EnemyController : MonoBehaviour
     {
-        [Header("敵データ")]
-        public EnemyData enemyData;
+        [Header("基本設定")]
+        [SerializeField] private EnemyData enemyData;
+        [SerializeField] private NavMeshAgent agent;
 
-        [Header("ターゲット情報")]
-        public PlayerController targetPlayer;
+        [Header("回転設定")]
+        [SerializeField] private float rotationSpeed = 10f;     // プレイヤーに向く旋回速度
 
-        [Header("感知設定")]
-        public float immediateSenseRadius = 2.5f;
+        [Header("コンボ・連撃設定")]
+        [SerializeField] private int minComboCount = 1;         // 1回で繰り出す最小攻撃回数
+        [SerializeField] private int maxComboCount = 3;         // 1回で繰り出す最大攻撃回数
+        [SerializeField] private float comboInterval = 0.5f;     // 連撃間のインターバル(秒)
+        [SerializeField] private float globalAttackCooldown = 2f; // 全体攻撃後の共通クールタイム(秒)
 
-        [Header("ランダムウォーク設定")]
-        [SerializeField] private float wanderRadius = 5f;
-        [SerializeField] private float wanderInterval = 3.5f;
+        [Header("各種コンポーネント (自動取得)")]
+        [SerializeField] private EnemyHealth enemyHealth;
+        [SerializeField] private Animator animator;
+        [SerializeField] private BuffHandler buffHandler;
 
-        [Header("引き行動（後ずさり）設定")]
-        [SerializeField] private float retreatDistance = 4.5f;
+        private Transform targetPlayer;
+        private EnemyState currentState = EnemyState.Patrol;
 
-        [Header("諦め（ギブアップ）設定")]
-        [SerializeField] private float giveUpTime = 7f;
-        [SerializeField] private float resetCooldown = 5f;
-
-        [Header("ドロップ設定")]
-        [SerializeField] private GameObject itemPickupBasePrefab;
-
-        public EnemyState CurrentState { get; private set; } = EnemyState.IdleOrWander;
-        public bool IsAlerted { get; private set; } = false;
-        public NavMeshAgent Agent => agent;
-
-        private BuffHandler buffHandler;
-        private NavMeshAgent agent;
-        private float currentHp;
+        private float nextAllowedAttackTime = 0f;
+        private float retreatTimer = 0f;
+        private Vector3 patrolDestination;
+        private bool hasPatrolDestination = false;
         private bool isDead = false;
 
-        private float wanderTimer;
-        private float attackTimer;
-        private bool isAttackRoutineRunning = false;
-        private bool isGivingUp = false;
-        private Vector3 spawnPosition;
+        // 連撃制御用変数
+        private int remainingComboHits = 0;
+        private bool isAttackingAnimation = false;
+        private AttackPattern currentSelectedPattern;
 
-        private void Awake()
-        {
-            buffHandler = GetComponent<BuffHandler>();
-            agent = GetComponent<NavMeshAgent>();
-
-            if (targetPlayer == null)
-            {
-                targetPlayer = FindFirstObjectByType<PlayerController>();
-            }
-        }
+        public EnemyData Data => enemyData;
 
         private void Start()
         {
-            spawnPosition = transform.position;
+            if (agent == null) agent = GetComponent<NavMeshAgent>();
+            if (enemyHealth == null) enemyHealth = GetComponent<EnemyHealth>();
+            if (animator == null) animator = GetComponentInChildren<Animator>();
+            if (buffHandler == null) buffHandler = GetComponent<BuffHandler>();
 
-            if (GameSceneManager.Instance != null && buffHandler != null)
+            GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+            if (playerObj != null)
             {
-                GameSceneManager.Instance.ApplyAllBuffsToEnemy(buffHandler);
+                targetPlayer = playerObj.transform;
             }
-
-            float statMult = (buffHandler != null) ? buffHandler.GetMultiplier(BuffType.EnemyStatUp, BuffType.EnemyStatDown) : 1.0f;
 
             if (enemyData != null)
             {
-                currentHp = enemyData.maxHp * statMult;
-                agent.speed = enemyData.moveSpeed * statMult;
-
-                agent.stoppingDistance = GetCenterAttackRange();
-                agent.obstacleAvoidanceType = ObstacleAvoidanceType.HighQualityObstacleAvoidance;
-                agent.avoidancePriority = Random.Range(30, 60);
-            }
-            else
-            {
-                currentHp = 50f * statMult;
+                if (enemyHealth != null) enemyHealth.SetMaxHealth(enemyData.maxHp);
+                ApplySpeedMultiplier();
             }
 
-            wanderTimer = wanderInterval;
+            SetState(EnemyState.Patrol);
         }
 
         private void Update()
         {
-            if (isDead || targetPlayer == null || enemyData == null) return;
+            if (isDead) return;
 
-            if (isGivingUp)
+            ApplySpeedMultiplier();
+
+            switch (currentState)
             {
-                HandleGivingUp();
-                return;
+                case EnemyState.Patrol:
+                    UpdatePatrolState();
+                    break;
+                case EnemyState.Chase:
+                    UpdateChaseState();
+                    break;
+                case EnemyState.Attack:
+                    UpdateAttackState();
+                    break;
+                case EnemyState.Retreat:
+                    UpdateRetreatState();
+                    break;
             }
 
-            CheckSenses();
-
-            switch (CurrentState)
+            if (animator != null && agent != null)
             {
-                case EnemyState.IdleOrWander:
-                    HandleWander();
-                    break;
-
-                case EnemyState.Chasing:
-                    HandleChasing();
-                    break;
-
-                case EnemyState.Attacking:
-                    if (agent.hasPath) agent.ResetPath();
-                    break;
-
-                case EnemyState.Kiting:
-                    HandleKiting();
-                    break;
+                bool isWalking = agent.velocity.magnitude > 0.1f;
+                animator.SetBool("walk", isWalking);
             }
         }
 
-        private void CheckSenses()
+        private void ApplySpeedMultiplier()
         {
-            if (isGivingUp) return;
+            if (agent == null || enemyData == null) return;
 
-            Vector3 directionToPlayer = targetPlayer.transform.position - transform.position;
-            directionToPlayer.y = 0f;
-            float distanceToPlayer = directionToPlayer.magnitude;
-
-            if (IsAlerted || distanceToPlayer <= immediateSenseRadius)
+            float speedMult = 1f;
+            if (buffHandler != null)
             {
-                SetAlerted();
-                return;
+                speedMult *= buffHandler.GetMultiplier(BuffType.MoveSpeedUp, BuffType.MoveSpeedDown);
             }
+            agent.speed = enemyData.moveSpeed * speedMult;
+        }
+
+        private void SetState(EnemyState newState)
+        {
+            currentState = newState;
+            hasPatrolDestination = false;
+
+            if (agent != null && agent.isActiveAndEnabled)
+            {
+                agent.isStopped = false;
+                agent.updateRotation = true; // 基本状態では NavMeshAgent に回転させる
+            }
+        }
+
+        #region State Updates
+
+        private void UpdatePatrolState()
+        {
+            if (targetPlayer == null || enemyData == null) return;
+
+            float distanceToPlayer = Vector3.Distance(transform.position, targetPlayer.position);
 
             if (distanceToPlayer <= enemyData.sightRange)
             {
-                float angleToPlayer = Vector3.Angle(transform.forward, directionToPlayer.normalized);
+                Vector3 dirToPlayer = (targetPlayer.position - transform.position).normalized;
+                dirToPlayer.y = 0f;
+
+                float angleToPlayer = Vector3.Angle(transform.forward, dirToPlayer);
+
                 if (angleToPlayer <= enemyData.sightAngle * 0.5f)
                 {
-                    SetAlerted();
+                    SetState(EnemyState.Chase);
+                    return;
+                }
+            }
+
+            if (!hasPatrolDestination || (agent != null && agent.remainingDistance <= 0.5f))
+            {
+                Vector3 randomPoint = transform.position + Random.insideUnitSphere * 10f;
+                if (NavMesh.SamplePosition(randomPoint, out NavMeshHit hit, 10f, NavMesh.AllAreas))
+                {
+                    patrolDestination = hit.position;
+                    hasPatrolDestination = true;
+                    if (agent != null && agent.isActiveAndEnabled) agent.SetDestination(patrolDestination);
                 }
             }
         }
 
-        public void SetAlerted()
+        private void UpdateChaseState()
         {
-            if (isGivingUp) return;
-
-            IsAlerted = true;
-            if (CurrentState == EnemyState.IdleOrWander)
+            if (targetPlayer == null || enemyData == null)
             {
-                CurrentState = EnemyState.Chasing;
-                attackTimer = 0f;
+                SetState(EnemyState.Patrol);
+                return;
+            }
+
+            float distanceToPlayer = Vector3.Distance(transform.position, targetPlayer.position);
+
+            if (distanceToPlayer > enemyData.sightRange * 1.5f)
+            {
+                SetState(EnemyState.Patrol);
+                return;
+            }
+
+            // クールタイムが明けており、攻撃可能範囲内の技があれば Attack へ移行
+            if (Time.time >= nextAllowedAttackTime)
+            {
+                AttackPattern validPattern = GetRandomAvailableAttackPattern(distanceToPlayer);
+                if (validPattern != null)
+                {
+                    // 連撃回数をランダムで決定
+                    remainingComboHits = Random.Range(minComboCount, maxComboCount + 1);
+                    currentSelectedPattern = validPattern;
+                    SetState(EnemyState.Attack);
+                    return;
+                }
+            }
+
+            // 追尾移動
+            if (agent != null && agent.isActiveAndEnabled)
+            {
+                agent.isStopped = false;
+                agent.SetDestination(targetPlayer.position);
             }
         }
 
-        private void HandleWander()
+        private void UpdateAttackState()
         {
-            wanderTimer += Time.deltaTime;
-            if (wanderTimer >= wanderInterval)
+            if (targetPlayer == null || enemyData == null)
             {
-                wanderTimer = 0f;
-                Vector3 randomPoint = transform.position + Random.insideUnitSphere * wanderRadius;
+                EndAttackAndCooldown();
+                SetState(EnemyState.Patrol);
+                return;
+            }
 
-                if (NavMesh.SamplePosition(randomPoint, out NavMeshHit hit, wanderRadius, NavMesh.AllAreas))
+            if (agent != null && agent.isActiveAndEnabled)
+            {
+                agent.isStopped = true;
+                agent.updateRotation = false; // 手動で回転補間を行うため自動回転をオフ
+            }
+
+            // モーション再生中でなければ、プレイヤーの方向へ滑らかに向きを変える
+            if (!isAttackingAnimation)
+            {
+                RotateTowardsTarget(targetPlayer.position);
+            }
+            else
+            {
+                // アニメーション再生中は何もしない（向きを固定）
+                return;
+            }
+
+            float distanceToPlayer = Vector3.Distance(transform.position, targetPlayer.position);
+
+            // 連撃がまだ残っている場合
+            if (remainingComboHits > 0)
+            {
+                // 次の攻撃パターンを選択（届く技があれば）
+                currentSelectedPattern = GetRandomAvailableAttackPattern(distanceToPlayer);
+
+                // 範囲外に逃げられた（発動できる技がない）場合は連撃を中断して Chase へ戻る
+                if (currentSelectedPattern == null)
                 {
+                    EndAttackAndCooldown();
+                    SetState(EnemyState.Chase);
+                    return;
+                }
+
+                // 攻撃モーション実行
+                StartCoroutine(ExecuteAttackRoutine());
+            }
+            else
+            {
+                // 連撃終了時 -> 全体クールタイムを適用して Chase に戻る
+                EndAttackAndCooldown();
+                SetState(EnemyState.Chase);
+            }
+        }
+
+        /// <summary>
+        /// 指定した目標位置へ滑らかに回転させる
+        /// </summary>
+        private void RotateTowardsTarget(Vector3 targetPosition)
+        {
+            Vector3 direction = (targetPosition - transform.position).normalized;
+            direction.y = 0f;
+
+            if (direction != Vector3.zero)
+            {
+                Quaternion targetRotation = Quaternion.LookRotation(direction);
+                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * rotationSpeed);
+            }
+        }
+
+        private IEnumerator ExecuteAttackRoutine()
+        {
+            isAttackingAnimation = true;
+            remainingComboHits--;
+
+            TriggerAttackAnimation();
+
+            // アニメーション再生・判定待ち（Animation EventでOnEnemyAttackAnimationが呼ばれる）
+            yield return new WaitForSeconds(comboInterval);
+
+            isAttackingAnimation = false;
+        }
+
+        private void EndAttackAndCooldown()
+        {
+            remainingComboHits = 0;
+            isAttackingAnimation = false;
+
+            if (agent != null && agent.isActiveAndEnabled)
+            {
+                agent.updateRotation = true;
+            }
+
+            // 技ごとの個別のクールタイムではなく、全体クールタイムを適用
+            nextAllowedAttackTime = Time.time + globalAttackCooldown;
+        }
+
+        private void UpdateRetreatState()
+        {
+            if (targetPlayer == null)
+            {
+                SetState(EnemyState.Patrol);
+                return;
+            }
+
+            retreatTimer -= Time.deltaTime;
+            if (retreatTimer <= 0f)
+            {
+                SetState(EnemyState.Chase);
+                return;
+            }
+
+            Vector3 retreatDir = (transform.position - targetPlayer.position).normalized;
+            Vector3 targetPos = transform.position + retreatDir * 5f;
+
+            if (NavMesh.SamplePosition(targetPos, out NavMeshHit hit, 5f, NavMesh.AllAreas))
+            {
+                if (agent != null && agent.isActiveAndEnabled)
+                {
+                    agent.isStopped = false;
                     agent.SetDestination(hit.position);
                 }
             }
         }
 
-        private void HandleChasing()
+        #endregion
+
+        /// <summary>
+        /// 現在の距離・範囲にヒットする攻撃パターン一覧の中からランダムで1つ取得する
+        /// </summary>
+        private AttackPattern GetRandomAvailableAttackPattern(float distanceToPlayer)
         {
-            Vector3 directionToPlayer = targetPlayer.transform.position - transform.position;
-            directionToPlayer.y = 0f;
-            float distanceToPlayer = directionToPlayer.magnitude;
+            if (enemyData == null || enemyData.attackPatterns == null || enemyData.attackPatterns.Count == 0) return null;
 
-            agent.SetDestination(targetPlayer.transform.position);
+            List<AttackPattern> availablePatterns = new List<AttackPattern>();
 
-            if (distanceToPlayer <= agent.stoppingDistance && !isAttackRoutineRunning)
-            {
-                attackTimer = 0f;
-                StartCoroutine(AttackRoutine());
-            }
-            else
-            {
-                attackTimer += Time.deltaTime;
-                if (attackTimer >= giveUpTime)
-                {
-                    StartGiveUp();
-                }
-            }
-        }
-
-        private IEnumerator AttackRoutine()
-        {
-            isAttackRoutineRunning = true;
-            CurrentState = EnemyState.Attacking;
-
-            int patternIndex = Random.Range(0, enemyData.attackPatterns.Count);
-            var selectedPattern = enemyData.attackPatterns[patternIndex];
-
-            Vector3 lookDir = (targetPlayer.transform.position - transform.position);
-            lookDir.y = 0f;
-            if (lookDir != Vector3.zero)
-            {
-                transform.rotation = Quaternion.LookRotation(lookDir.normalized);
-            }
-
-            OnAttackHit(patternIndex);
-
-            yield return new WaitForSeconds(0.5f);
-
-            CurrentState = EnemyState.Kiting;
-
-            float cooldown = selectedPattern.attackCooldown > 0f ? selectedPattern.attackCooldown : 2f;
-            yield return new WaitForSeconds(cooldown);
-
-            CurrentState = EnemyState.Chasing;
-            isAttackRoutineRunning = false;
-        }
-
-        private void HandleKiting()
-        {
-            Vector3 dirFromPlayer = (transform.position - targetPlayer.transform.position).normalized;
-            dirFromPlayer.y = 0f;
-
-            Vector3 targetPos = targetPlayer.transform.position + dirFromPlayer * retreatDistance;
-
-            if (NavMesh.SamplePosition(targetPos, out NavMeshHit hit, 2f, NavMesh.AllAreas))
-            {
-                agent.SetDestination(hit.position);
-            }
-
-            Vector3 lookDir = (targetPlayer.transform.position - transform.position);
-            lookDir.y = 0f;
-            if (lookDir != Vector3.zero)
-            {
-                transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(lookDir.normalized), Time.deltaTime * 6f);
-            }
-        }
-
-        private void StartGiveUp()
-        {
-            isGivingUp = true;
-            IsAlerted = false;
-            CurrentState = EnemyState.GivingUp;
-            agent.SetDestination(spawnPosition);
-        }
-
-        private void HandleGivingUp()
-        {
-            agent.SetDestination(spawnPosition);
-
-            if (!agent.pathPending && agent.remainingDistance <= agent.stoppingDistance)
-            {
-                StartCoroutine(ResetRoutine());
-            }
-        }
-
-        private IEnumerator ResetRoutine()
-        {
-            CurrentState = EnemyState.IdleOrWander;
-            yield return new WaitForSeconds(resetCooldown);
-
-            isGivingUp = false;
-            attackTimer = 0f;
-        }
-
-        private float GetCenterAttackRange()
-        {
-            if (enemyData == null || enemyData.attackPatterns == null || enemyData.attackPatterns.Count == 0)
-                return 1.5f;
-
-            float minCenterRange = float.MaxValue;
             foreach (var pattern in enemyData.attackPatterns)
             {
-                float centerRange = (pattern.minAttackRange + pattern.maxAttackRange) * 0.5f;
-                if (centerRange < minCenterRange) minCenterRange = centerRange;
+                if (pattern.attackType == AttackType.Circle)
+                {
+                    if (AttackChecker.IsInCircleRange(transform, targetPlayer.position, pattern))
+                    {
+                        availablePatterns.Add(pattern);
+                    }
+                }
+                else if (pattern.attackType == AttackType.RangedTarget)
+                {
+                    if (distanceToPlayer >= pattern.minAttackRange && distanceToPlayer <= pattern.maxAttackRange)
+                    {
+                        availablePatterns.Add(pattern);
+                    }
+                }
             }
-            return minCenterRange;
+
+            if (availablePatterns.Count > 0)
+            {
+                int randomIndex = Random.Range(0, availablePatterns.Count);
+                return availablePatterns[randomIndex];
+            }
+
+            return null;
+        }
+
+        private void TriggerAttackAnimation()
+        {
+            if (animator != null && currentSelectedPattern != null && !string.IsNullOrEmpty(currentSelectedPattern.animationTriggerName))
+            {
+                animator.SetTrigger(currentSelectedPattern.animationTriggerName);
+            }
+            else if (animator != null)
+            {
+                animator.SetTrigger("Attack");
+            }
+        }
+
+        /// <summary>
+        /// アニメーションイベントから呼び出される攻撃判定実行メソッド
+        /// (Animation Event name: OnEnemyAttackAnimation)
+        /// </summary>
+        public void OnEnemyAttackAnimation()
+        {
+            if (isDead || targetPlayer == null || currentSelectedPattern == null) return;
+
+            bool isStillInRange = AttackChecker.IsTargetInAttackRange(transform, targetPlayer, currentSelectedPattern, targetPlayer.position);
+
+            if (isStillInRange)
+            {
+                float atkMult = buffHandler != null ? buffHandler.GetMultiplier(BuffType.AttackUp, BuffType.AttackDown) : 1f;
+                float finalDamage = currentSelectedPattern.damage * atkMult;
+
+                if (targetPlayer.TryGetComponent<PlayerController>(out var playerController))
+                {
+                    playerController.TakeDamage(finalDamage);
+                }
+            }
         }
 
         public void TakeDamage(float damageAmount)
         {
             if (isDead) return;
 
-            currentHp -= damageAmount;
+            float damageMult = buffHandler != null ? buffHandler.GetMultiplier(BuffType.DamageReceivedUp) : 1f;
+            float finalDamage = damageAmount * damageMult;
 
-            if (!isGivingUp)
+            if (enemyHealth != null)
             {
-                SetAlerted();
+                enemyHealth.TakeDamage(finalDamage);
+            }
+            else
+            {
+                Die();
             }
 
-            if (currentHp <= 0f) Die();
+            if (!isDead)
+            {
+                if (targetPlayer == null)
+                {
+                    GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+                    if (playerObj != null) targetPlayer = playerObj.transform;
+                }
+
+                if (targetPlayer != null && currentState != EnemyState.Attack)
+                {
+                    SetState(EnemyState.Chase);
+                }
+            }
         }
 
         public void Die()
@@ -311,7 +431,11 @@ namespace MagicRogue
             StopAllCoroutines();
             if (agent != null && agent.isActiveAndEnabled) agent.isStopped = true;
 
-            // 撃破キルカウント処理（神仙へと至る道）
+            if (EnemySpawner.Instance != null)
+            {
+                EnemySpawner.Instance.OnEnemyKilled();
+            }
+
             if (targetPlayer != null && targetPlayer.TryGetComponent<BuffHandler>(out var playerBuffs))
             {
                 playerBuffs.RegisterKill();
@@ -323,49 +447,17 @@ namespace MagicRogue
 
         private void DropItems()
         {
-            if (enemyData == null || enemyData.dropList == null || itemPickupBasePrefab == null) return;
+            if (enemyData == null || enemyData.dropList == null) return;
 
-            foreach (var dropInfo in enemyData.dropList)
+            foreach (var drop in enemyData.dropList)
             {
-                if (dropInfo.item == null) continue;
-
-                float dropMult = 1f;
-                if (targetPlayer != null && targetPlayer.TryGetComponent<BuffHandler>(out var playerBuffs))
+                if (drop.item != null && Random.value <= drop.dropChance)
                 {
-                    dropMult = playerBuffs.GetMultiplier(BuffType.DropRateUp);
-                }
-
-                if (Random.value <= dropInfo.dropChance * dropMult)
-                {
-                    Vector3 spawnPos = transform.position + Vector3.up * 0.5f;
-                    GameObject dropObj = Instantiate(itemPickupBasePrefab, spawnPos, Quaternion.identity);
-
-                    if (dropObj.TryGetComponent<ItemPickupSystem>(out var pickup))
+                    if (drop.item.customWorldModelPrefab != null)
                     {
-                        pickup.Setup(dropInfo.item, 1, triggerPop: true);
+                        Instantiate(drop.item.customWorldModelPrefab, transform.position + Vector3.up * 0.5f, Quaternion.identity);
                     }
                 }
-            }
-        }
-
-        public void OnAttackHit(int patternIndex)
-        {
-            if (enemyData == null || enemyData.attackPatterns == null) return;
-            if (patternIndex < 0 || patternIndex >= enemyData.attackPatterns.Count) return;
-            if (targetPlayer == null) return;
-
-            AttackPattern pattern = enemyData.attackPatterns[patternIndex];
-            bool isHit = AttackChecker.IsTargetInAttackRange(transform, targetPlayer.transform, pattern);
-
-            if (isHit)
-            {
-                if (buffHandler == null) buffHandler = GetComponent<BuffHandler>();
-
-                float selfAtkMult = (buffHandler != null) ? buffHandler.GetMultiplier(BuffType.AttackUp, BuffType.AttackDown) : 1.0f;
-                float statMult = (buffHandler != null) ? buffHandler.GetMultiplier(BuffType.EnemyStatUp, BuffType.EnemyStatDown) : 1.0f;
-
-                float finalDamage = pattern.damage * selfAtkMult * statMult;
-                targetPlayer.TakeDamage(finalDamage);
             }
         }
     }
