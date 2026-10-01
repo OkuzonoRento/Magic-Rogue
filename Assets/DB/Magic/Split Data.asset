@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MagicRogue.MagicData
   itemId: 
   itemName: 
-  icon: {fileID: 21300000, guid: abe5f892bfedfed4aa5b7fadf969cfc0, type: 3}
+  icon: {fileID: 563361432, guid: 8b5dab85cc8b0c4418295c33e1cbb8ab, type: 3}
   rarity: 0
   customWorldModelPrefab: {fileID: 0}
   buyPrice: 100
@@ -26,7 +26,7 @@ MonoBehaviour:
   duration: 5
   spawnType: 0
   movementType: 4
-  projectilePrefab: {fileID: 94684462530363271, guid: 384942814981603408cd9da09bc593bb, type: 3}
+  projectilePrefab: {fileID: 2334295758925942186, guid: a269b04d45178aa40b70516151957723, type: 3}
   projectileCount: 5
   spreadAngle: 70
   maxSplitCount: 2

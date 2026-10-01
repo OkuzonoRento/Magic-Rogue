@@ -72,7 +72,7 @@ namespace MagicRogue
             Random.InitState(CurrentSaveData.randomSeed);
 
             SaveDataToDisk();
-            ChangeSceneWithFade("GlobalBuffSelect");
+            ChangeSceneWithFade("02_GlobalBuffSelect");
         }
 
         /// <summary>
@@ -89,7 +89,7 @@ namespace MagicRogue
             {
                 case GameStateType.InBuffSelection:
                     Random.InitState(CurrentSaveData.randomSeed);
-                    ChangeSceneWithFade("GlobalBuffSelect");
+                    ChangeSceneWithFade("02_GlobalBuffSelect");
                     break;
 
                 case GameStateType.InGame:
@@ -97,7 +97,7 @@ namespace MagicRogue
                     break;
 
                 case GameStateType.InShop:
-                    ChangeSceneWithFade("Shop");
+                    ChangeSceneWithFade("06_Shop");
                     break;
             }
         }
@@ -180,7 +180,7 @@ namespace MagicRogue
             selectedMapName = string.Empty;
 
             SaveSelectionState();
-            ChangeSceneWithFade("Shop");
+            ChangeSceneWithFade("06_Shop");
         }
 
         public void LeaveShopToMapSelect()
@@ -190,7 +190,7 @@ namespace MagicRogue
             Random.InitState(CurrentSaveData.randomSeed);
 
             SaveSelectionState();
-            ChangeSceneWithFade("MapSelect");
+            ChangeSceneWithFade("03_MapSelect");
         }
 
         public void ClearSaveDataOnResult()

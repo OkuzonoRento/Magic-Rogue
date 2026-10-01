@@ -14,21 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MagicRogue.InventorySO
   coins: 4150
   spellSlots:
-  - {fileID: 11400000, guid: e8cfb20c3332d3b40afd02acb2f11968, type: 2}
-  - {fileID: 11400000, guid: e8cfb20c3332d3b40afd02acb2f11968, type: 2}
-  - {fileID: 11400000, guid: e8cfb20c3332d3b40afd02acb2f11968, type: 2}
+  - {fileID: 11400000, guid: 52dc6d838baa26a4d86181f88ede5093, type: 2}
+  - {fileID: 11400000, guid: 84d94b946f451c14aa89c938715e4cf6, type: 2}
+  - {fileID: 11400000, guid: 84d94b946f451c14aa89c938715e4cf6, type: 2}
   inventorySlots:
-  - itemData: {fileID: 11400000, guid: ce1f8fe535a38294d86c026334a53e7b, type: 2}
-    amount: 89
-  - itemData: {fileID: 11400000, guid: ce1f8fe535a38294d86c026334a53e7b, type: 2}
-    amount: 89
-  - itemData: {fileID: 11400000, guid: e8cfb20c3332d3b40afd02acb2f11968, type: 2}
+  - itemData: {fileID: 11400000, guid: e986d233683769243837c192a3ef6c82, type: 2}
     amount: 1
-  - itemData: {fileID: 11400000, guid: e8cfb20c3332d3b40afd02acb2f11968, type: 2}
-    amount: 1
-  - itemData: {fileID: 11400000, guid: ce1f8fe535a38294d86c026334a53e7b, type: 2}
-    amount: 44
-  - itemData: {fileID: 11400000, guid: ce1f8fe535a38294d86c026334a53e7b, type: 2}
+  - itemData: {fileID: 11400000, guid: c83c89e698d63f74896f1fb8dec6da39, type: 2}
     amount: 1
   - itemData: {fileID: 11400000, guid: ce1f8fe535a38294d86c026334a53e7b, type: 2}
     amount: 1
@@ -78,3 +70,11 @@ MonoBehaviour:
     amount: 1
   - itemData: {fileID: 11400000, guid: ce1f8fe535a38294d86c026334a53e7b, type: 2}
     amount: 1
+  - itemData: {fileID: 0}
+    amount: 0
+  - itemData: {fileID: 0}
+    amount: 0
+  - itemData: {fileID: 0}
+    amount: 0
+  - itemData: {fileID: 0}
+    amount: 0

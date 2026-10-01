@@ -16,6 +16,10 @@ namespace MagicRogue
         [Tooltip("説明文")]
         public string description;
 
+        [Header("コスト・タイプ設定")]
+        [Tooltip("グローバルバフ選択時のコスト（クレジット）")]
+        public int creditCost = 10;
+
         [Header("効果パラメータ")]
         [Tooltip("バフ/デバフの種類")]
         public BuffType buffType;
