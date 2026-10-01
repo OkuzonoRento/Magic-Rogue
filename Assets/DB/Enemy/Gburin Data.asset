@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: Gburin Data
   m_EditorClassIdentifier: Assembly-CSharp::MagicRogue.EnemyData
   enemyName: 
-  maxHp: 500000
-  moveSpeed: 3
+  maxHp: 25
+  moveSpeed: 5
   sightRange: 10
   sightAngle: 150
   sightRangeColor: {r: 0, g: 1, b: 0, a: 0.2}
@@ -47,4 +47,4 @@ MonoBehaviour:
     attackRangeColor: {r: 1, g: 0.5, b: 0, a: 0.25}
   dropList:
   - item: {fileID: 11400000, guid: ce1f8fe535a38294d86c026334a53e7b, type: 2}
-    dropChance: 1
+    dropChance: 0.7

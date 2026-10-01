@@ -3,6 +3,8 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.AI;
+
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -154,8 +156,18 @@ namespace MagicRogue
                 float speedMult = buffHandler != null ? buffHandler.GetMultiplier(BuffType.MoveSpeedUp, BuffType.MoveSpeedDown) : 1f;
                 float moveSpeed = baseMoveSpeed * speedMult;
 
-                characterController.Move(moveDirection * moveSpeed * Time.deltaTime);
+                // 今回の移動で移動しようとしている「目標座標」を仮計算
+                Vector3 targetPosition = transform.position + (moveDirection * moveSpeed * Time.deltaTime);
 
+                // 目標座標から半径 1.0 以内の最も近い NavMesh 上の位置を取得
+                if (NavMesh.SamplePosition(targetPosition, out NavMeshHit hit, 1.0f, NavMesh.AllAreas))
+                {
+                    // 現在位置から NavMesh 上の補正位置までの移動ベクトルを計算して移動
+                    Vector3 correctMoveVector = hit.position - transform.position;
+                    characterController.Move(correctMoveVector);
+                }
+
+                // 回転処理（変更なし）
                 if (targetLockSystem == null || !targetLockSystem.IsLockedOn)
                 {
                     Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
@@ -178,6 +190,9 @@ namespace MagicRogue
 
         private void AutoCastSpells()
         {
+            // ★ ロックオンしていない場合は攻撃処理を行わない
+            if (targetLockSystem == null || !targetLockSystem.IsLockedOn) return;
+
             if (inventory == null || inventory.spellSlots == null) return;
 
             int totalSlots = inventory.spellSlots.Length;

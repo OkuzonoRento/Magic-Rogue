@@ -126,7 +126,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 49f8d8e0d1d6d83439bef92cf6c0eb1e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MagicRogue.MagicProjectile
-  homingDelay: 0.25
+  homingDelay: 0.35
 --- !u!54 &-3736984161684877407
 Rigidbody:
   m_ObjectHideFlags: 0

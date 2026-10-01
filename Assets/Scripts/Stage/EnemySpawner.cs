@@ -102,9 +102,10 @@ namespace MagicRogue
                 }
             }
 
-            // 2. 撃破カウントなどの初期化
+            // 2. 撃破カウント・リストの初期化
             currentKillCount = 0;
             isPortalSpawned = false;
+            activeEnemies.Clear();
 
             // 3. 敵スポーンルーチンの開始
             if (spawnCoroutine != null) StopCoroutine(spawnCoroutine);
@@ -135,6 +136,18 @@ namespace MagicRogue
         {
             var mapData = activeMap.MapData;
 
+            // ★ 初期化時：最大上限（maxEnemyCount）まで即座にスポーンさせる
+            activeEnemies.RemoveAll(enemy => enemy == null);
+            while (activeEnemies.Count < mapData.maxEnemyCount)
+            {
+                if (!TrySpawnEnemy(mapData))
+                {
+                    // 万が一NavMeshの位置取得に失敗し続ける場合は無限ループを防ぐため抜ける
+                    break;
+                }
+            }
+
+            // ★ 以降は指定のインターバルごとに欠員が出たら追加スポーン
             while (true)
             {
                 yield return new WaitForSeconds(mapData.spawnInterval);
@@ -147,16 +160,26 @@ namespace MagicRogue
                     continue;
                 }
 
-                if (TryGetAutoNavMeshSpawnPosition(out Vector3 spawnPosition))
+                TrySpawnEnemy(mapData);
+            }
+        }
+
+        /// <summary>
+        /// 1体分の敵スポーン処理を行うヘルパーメソッド
+        /// </summary>
+        private bool TrySpawnEnemy(MapData mapData)
+        {
+            if (TryGetAutoNavMeshSpawnPosition(out Vector3 spawnPosition))
+            {
+                GameObject selectedPrefab = SelectRandomEnemyPrefab(mapData);
+                if (selectedPrefab != null)
                 {
-                    GameObject selectedPrefab = SelectRandomEnemyPrefab(mapData);
-                    if (selectedPrefab != null)
-                    {
-                        GameObject enemy = Instantiate(selectedPrefab, spawnPosition, Quaternion.identity);
-                        activeEnemies.Add(enemy);
-                    }
+                    GameObject enemy = Instantiate(selectedPrefab, spawnPosition, Quaternion.identity);
+                    activeEnemies.Add(enemy);
+                    return true;
                 }
             }
+            return false;
         }
 
         private bool TryGetAutoNavMeshSpawnPosition(out Vector3 result)
