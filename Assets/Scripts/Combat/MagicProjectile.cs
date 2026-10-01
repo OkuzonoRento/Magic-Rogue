@@ -26,21 +26,24 @@ namespace MagicRogue
         {
             magicData = data;
             moveDirection = new Vector3(direction.x, 0f, direction.z).normalized;
-            finalDamage = data.damage * damageMultiplier;
+            finalDamage = data != null ? data.damage * damageMultiplier : 0f;
             spawnTime = Time.time;
             lastHitEnemy = ignoredEnemy;
 
-            remainingSplits = (currentSplits == -1) ? data.maxSplitCount : currentSplits;
+            remainingSplits = (data != null && currentSplits == -1) ? data.maxSplitCount : currentSplits;
 
             GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
             if (playerObj != null) ownerPlayer = playerObj.transform;
 
-            if (magicData.movementType == MovementType.Homing)
+            if (magicData != null && magicData.movementType == MovementType.Homing)
             {
                 targetEnemy = FindNearestEnemy();
             }
 
-            Destroy(gameObject, magicData.duration);
+            if (magicData != null)
+            {
+                Destroy(gameObject, magicData.duration);
+            }
         }
 
         private void Update()
@@ -150,6 +153,7 @@ namespace MagicRogue
 
             foreach (GameObject enemy in enemies)
             {
+                if (enemy == null) continue;
                 float dist = Vector3.Distance(transform.position, enemy.transform.position);
                 if (dist < minDistance)
                 {
@@ -162,6 +166,9 @@ namespace MagicRogue
 
         private void OnTriggerStay(Collider other)
         {
+            // ★ 安全保護：magicData または other が null の場合は処理しない
+            if (magicData == null || other == null) return;
+
             if (magicData.movementType == MovementType.Laser && other.CompareTag("Enemy"))
             {
                 if (laserTimer >= magicData.laserDamageInterval)
@@ -174,6 +181,8 @@ namespace MagicRogue
 
         private void OnTriggerEnter(Collider other)
         {
+            if (magicData == null || other == null) return;
+
             if (other.CompareTag("Player") || other.CompareTag("Untagged") || other.GetComponent<MagicProjectile>() != null)
             {
                 return;
@@ -207,6 +216,8 @@ namespace MagicRogue
 
         private void ApplyDamage(GameObject enemyObj)
         {
+            if (enemyObj == null) return;
+
             Debug.Log($"[Hit] {enemyObj.name} に {finalDamage} ダメージ！");
 
             if (enemyObj.TryGetComponent<EnemyController>(out var enemy))
@@ -235,6 +246,8 @@ namespace MagicRogue
 
         private void SplitIntoFour(GameObject hitEnemy)
         {
+            if (magicData == null) return;
+
             float[] angles = new float[] { 45f, 135f, 225f, 315f };
 
             foreach (float angle in angles)
@@ -252,6 +265,7 @@ namespace MagicRogue
 
         private void PlayHitVFX()
         {
+            if (magicData == null) return;
             if (magicData.hitEffectPrefab != null) Instantiate(magicData.hitEffectPrefab, transform.position, Quaternion.identity);
             if (magicData.hitSound != null) AudioSource.PlayClipAtPoint(magicData.hitSound, transform.position);
         }

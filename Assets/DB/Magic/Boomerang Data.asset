@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eb784c7c03f5f9342abe0e77344d474e, type: 3}
+  m_Name: Boomerang Data
+  m_EditorClassIdentifier: Assembly-CSharp::MagicRogue.MagicData
+  itemId: 
+  itemName: 
+  icon: {fileID: 21300000, guid: abe5f892bfedfed4aa5b7fadf969cfc0, type: 3}
+  rarity: 0
+  customWorldModelPrefab: {fileID: 0}
+  buyPrice: 100
+  sellPrice: 50
+  maxStackSize: 1
+  damage: 3
+  cooldown: 1
+  projectileSpeed: 15
+  duration: 5
+  spawnType: 0
+  movementType: 5
+  projectilePrefab: {fileID: 2334295758925942186, guid: a269b04d45178aa40b70516151957723, type: 3}
+  projectileCount: 5
+  spreadAngle: 80
+  maxSplitCount: 2
+  splitSubProjectiles: 4
+  laserDamageInterval: 0.2
+  returnTime: 1
+  returnSpeedMultiplier: 1.5
+  castEffectPrefab: {fileID: 0}
+  hitEffectPrefab: {fileID: 0}
+  castSound: {fileID: 0}
+  hitSound: {fileID: 0}
+  piercesEnemy: 1
+  piercesWall: 1

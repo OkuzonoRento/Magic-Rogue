@@ -16,27 +16,37 @@ namespace MagicRogue
             if (continueButton != null)
             {
                 continueButton.interactable = hasSave;
+                continueButton.onClick.AddListener(OnContinueClicked);
             }
 
             if (newGameButton != null)
             {
                 newGameButton.onClick.AddListener(OnNewGameClicked);
             }
-
-            if (continueButton != null)
-            {
-                continueButton.onClick.AddListener(OnContinueClicked);
-            }
         }
 
         private void OnNewGameClicked()
         {
-            GameSceneManager.Instance.StartNewGame();
+            SetButtonsInteractable(false);
+            if (GameSceneManager.Instance != null)
+            {
+                GameSceneManager.Instance.StartNewGame();
+            }
         }
 
         private void OnContinueClicked()
         {
-            GameSceneManager.Instance.ResumeGame();
+            SetButtonsInteractable(false);
+            if (GameSceneManager.Instance != null)
+            {
+                GameSceneManager.Instance.ResumeGame();
+            }
+        }
+
+        private void SetButtonsInteractable(bool interactable)
+        {
+            if (newGameButton != null) newGameButton.interactable = interactable;
+            if (continueButton != null) continueButton.interactable = interactable;
         }
     }
 }
