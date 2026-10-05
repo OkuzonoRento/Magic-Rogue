@@ -379,24 +379,10 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 4137598976804126568, guid: 68bd234c04cca114f926e1cb73ee2b9b, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1160710123}
-    - targetCorrespondingSourceObject: {fileID: 375517915199365746, guid: 68bd234c04cca114f926e1cb73ee2b9b, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 355837682}
-    - targetCorrespondingSourceObject: {fileID: 375517915199365746, guid: 68bd234c04cca114f926e1cb73ee2b9b, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 355837681}
-    - targetCorrespondingSourceObject: {fileID: 375517915199365746, guid: 68bd234c04cca114f926e1cb73ee2b9b, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 355837680}
   m_SourcePrefab: {fileID: 100100000, guid: 68bd234c04cca114f926e1cb73ee2b9b, type: 3}
 --- !u!4 &355837677 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 68bd234c04cca114f926e1cb73ee2b9b, type: 3}
-  m_PrefabInstance: {fileID: 355837676}
-  m_PrefabAsset: {fileID: 0}
---- !u!1 &355837678 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 375517915199365746, guid: 68bd234c04cca114f926e1cb73ee2b9b, type: 3}
   m_PrefabInstance: {fileID: 355837676}
   m_PrefabAsset: {fileID: 0}
 --- !u!1 &355837679 stripped
@@ -404,69 +390,6 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 68bd234c04cca114f926e1cb73ee2b9b, type: 3}
   m_PrefabInstance: {fileID: 355837676}
   m_PrefabAsset: {fileID: 0}
---- !u!65 &355837680
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 355837678}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 0.05, y: 0.1, z: 0.1}
-  m_Center: {x: -0.38, y: 0.26, z: 0}
---- !u!65 &355837681
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 355837678}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 0.14, y: 0.05, z: 0.1}
-  m_Center: {x: -0.35, y: 0.33, z: 0}
---- !u!65 &355837682
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 355837678}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 0.175, y: 0.05, z: 0.1}
-  m_Center: {x: -0.33, y: 0.38, z: 0}
 --- !u!114 &355837683
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -868,6 +791,7 @@ MonoBehaviour:
   inventory: {fileID: 11400000, guid: 074ead8f3f011e8479c0390c41031f7f, type: 2}
   castPoint: {fileID: 2378102307328859626}
   animator: {fileID: 0}
+  damageFlash: {fileID: 6833584235369197441}
   currentHp: 0
   equippedSpellsDebug: []
 --- !u!4 &2378102307328859626
@@ -1051,6 +975,7 @@ GameObject:
   - component: {fileID: 2378102307328859626}
   - component: {fileID: 5277315260797717940}
   - component: {fileID: 1289238530145688127}
+  - component: {fileID: 6833584235369197441}
   - component: {fileID: 4158582352478974346}
   - component: {fileID: 4170332316824859131}
   m_Layer: 0
@@ -1060,6 +985,20 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
+--- !u!114 &6833584235369197441
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6833584235369197440}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c4134dd16f038b146aaea2370586f250, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MagicRogue.DamageFlash
+  flashColor: {r: 1, g: 0, b: 0, a: 1}
+  flashDuration: 0.15
 --- !u!1001 &7479198137913044000
 PrefabInstance:
   m_ObjectHideFlags: 0

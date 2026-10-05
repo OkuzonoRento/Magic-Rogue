@@ -16,6 +16,7 @@ GameObject:
   - component: {fileID: 3120172433898042472}
   - component: {fileID: 2602221457625319957}
   - component: {fileID: 3135785415267674900}
+  - component: {fileID: 6341064813925121756}
   m_Layer: 6
   m_Name: Gburin
   m_TagString: Enemy
@@ -59,9 +60,12 @@ MonoBehaviour:
   maxComboCount: 3
   comboInterval: 0.5
   globalAttackCooldown: 2
-  enemyHealth: {fileID: 0}
-  animator: {fileID: 0}
-  buffHandler: {fileID: 0}
+  patrolRadius: 8
+  patrolWaitTime: 2
+  enemyHealth: {fileID: 3734012503145382946}
+  animator: {fileID: 3135785415267674900}
+  buffHandler: {fileID: 2441456009965627059}
+  damageFlash: {fileID: 6341064813925121756}
 --- !u!114 &4578351712788792723
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -177,6 +181,20 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &6341064813925121756
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5729720823639832441}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c4134dd16f038b146aaea2370586f250, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MagicRogue.DamageFlash
+  flashColor: {r: 1, g: 0, b: 0, a: 1}
+  flashDuration: 0.15
 --- !u!1 &6569348168469398152
 GameObject:
   m_ObjectHideFlags: 0

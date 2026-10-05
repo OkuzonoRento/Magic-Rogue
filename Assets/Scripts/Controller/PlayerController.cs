@@ -5,7 +5,6 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.AI;
 
-
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -58,6 +57,7 @@ namespace MagicRogue
         [SerializeField] private InventorySO inventory;
         [SerializeField] private Transform castPoint;
         [SerializeField] private Animator animator;
+        [SerializeField] private DamageFlash damageFlash; // ★ 追加
 
         [Header("デバッグ表示")]
         [SerializeField] private float currentHp;
@@ -91,6 +91,7 @@ namespace MagicRogue
             buffHandler = GetComponent<BuffHandler>();
             targetLockSystem = GetComponent<TargetLockSystem>();
             if (animator == null) animator = GetComponentInChildren<Animator>();
+            if (damageFlash == null) damageFlash = GetComponent<DamageFlash>(); // ★ 自動取得
 
             if (inventory != null)
             {
@@ -156,18 +157,14 @@ namespace MagicRogue
                 float speedMult = buffHandler != null ? buffHandler.GetMultiplier(BuffType.MoveSpeedUp, BuffType.MoveSpeedDown) : 1f;
                 float moveSpeed = baseMoveSpeed * speedMult;
 
-                // 今回の移動で移動しようとしている「目標座標」を仮計算
                 Vector3 targetPosition = transform.position + (moveDirection * moveSpeed * Time.deltaTime);
 
-                // 目標座標から半径 1.0 以内の最も近い NavMesh 上の位置を取得
                 if (NavMesh.SamplePosition(targetPosition, out NavMeshHit hit, 1.0f, NavMesh.AllAreas))
                 {
-                    // 現在位置から NavMesh 上の補正位置までの移動ベクトルを計算して移動
                     Vector3 correctMoveVector = hit.position - transform.position;
                     characterController.Move(correctMoveVector);
                 }
 
-                // 回転処理（変更なし）
                 if (targetLockSystem == null || !targetLockSystem.IsLockedOn)
                 {
                     Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
@@ -190,7 +187,6 @@ namespace MagicRogue
 
         private void AutoCastSpells()
         {
-            // ★ ロックオンしていない場合は攻撃処理を行わない
             if (targetLockSystem == null || !targetLockSystem.IsLockedOn) return;
 
             if (inventory == null || inventory.spellSlots == null) return;
@@ -238,7 +234,6 @@ namespace MagicRogue
                 return;
             }
 
-            // アニメーション再生（設定されている場合）
             if (animator != null)
             {
                 currentCastingSlot = slotIndex;
@@ -246,15 +241,10 @@ namespace MagicRogue
             }
             else
             {
-                // Animatorがない場合は即時発射
                 ExecuteMagicCast(slotIndex);
             }
         }
 
-        /// <summary>
-        /// アニメーションイベントから呼び出される魔法生成・発射メソッド
-        /// (Animation Event name: OnPlayerCastMagicAnimation)
-        /// </summary>
         public void OnPlayerCastMagicAnimation()
         {
             if (currentCastingSlot >= 0)
@@ -357,6 +347,13 @@ namespace MagicRogue
             float finalDamage = Mathf.Max(1f, damageAmount * damageMult);
 
             currentHp -= finalDamage;
+
+            // ★ ダメージ点滅演出を再生
+            if (damageFlash != null)
+            {
+                damageFlash.CallDamageFlash();
+            }
+
             Debug.Log($"[Player] {finalDamage} のダメージを受けた！ 残りHP: {currentHp}");
 
             if (currentHp <= 0)

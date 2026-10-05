@@ -37,6 +37,7 @@ namespace MagicRogue
         [SerializeField] private EnemyHealth enemyHealth;
         [SerializeField] private Animator animator;
         [SerializeField] private BuffHandler buffHandler;
+        [SerializeField] private DamageFlash damageFlash; // ★ 追加
 
         private Transform targetPlayer;
         private EnemyState currentState = EnemyState.Patrol;
@@ -62,6 +63,7 @@ namespace MagicRogue
             if (enemyHealth == null) enemyHealth = GetComponent<EnemyHealth>();
             if (animator == null) animator = GetComponentInChildren<Animator>();
             if (buffHandler == null) buffHandler = GetComponent<BuffHandler>();
+            if (damageFlash == null) damageFlash = GetComponent<DamageFlash>(); // ★ 自動取得
 
             GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
             if (playerObj != null)
@@ -145,14 +147,10 @@ namespace MagicRogue
 
         #region State Updates
 
-        /// <summary>
-        /// 非追尾時のランダムウォーク処理
-        /// </summary>
         private void UpdatePatrolState()
         {
             if (targetPlayer == null || enemyData == null) return;
 
-            // 1. 視界内にプレイヤーが入ったか判定
             float distanceToPlayer = Vector3.Distance(transform.position, targetPlayer.position);
             if (distanceToPlayer <= enemyData.sightRange)
             {
@@ -168,7 +166,6 @@ namespace MagicRogue
                 }
             }
 
-            // 2. ランダムウォーク移動の制御
             if (!hasPatrolDestination)
             {
                 Vector3 randomPoint = transform.position + Random.insideUnitSphere * patrolRadius;
@@ -185,7 +182,6 @@ namespace MagicRogue
             }
             else if (agent != null && agent.isActiveAndEnabled)
             {
-                // 目的地に到達した場合、少し待機してから次のランダム地点を設定
                 if (!agent.pathPending && agent.remainingDistance <= agent.stoppingDistance)
                 {
                     patrolTimer += Time.deltaTime;
@@ -214,7 +210,6 @@ namespace MagicRogue
                 return;
             }
 
-            // クールタイムが明けており、攻撃可能範囲内の技があれば Attack へ移行
             if (Time.time >= nextAllowedAttackTime)
             {
                 AttackPattern validPattern = GetRandomAvailableAttackPattern(distanceToPlayer);
@@ -227,7 +222,6 @@ namespace MagicRogue
                 }
             }
 
-            // 追尾移動
             if (agent != null && agent.isActiveAndEnabled)
             {
                 agent.isStopped = false;
@@ -243,7 +237,6 @@ namespace MagicRogue
                 return;
             }
 
-            // アニメーション再生（攻撃モーション実行中）は位置と角度を完全固定
             if (isAttackingAnimation)
             {
                 if (agent != null && agent.isActiveAndEnabled)
@@ -256,23 +249,17 @@ namespace MagicRogue
 
             float distanceToPlayer = Vector3.Distance(transform.position, targetPlayer.position);
 
-            // 連撃実行処理
             if (remainingComboHits > 0)
             {
-                // 攻撃を開始する直前にプレイヤーの方向に向き直る
                 RotateTowardsTarget(targetPlayer.position);
-
-                // 範囲内に技があるか確認
                 currentSelectedPattern = GetRandomAvailableAttackPattern(distanceToPlayer);
 
-                // 範囲外に出て技が出せない場合は即座に連撃を中止して Chase に戻る
                 if (currentSelectedPattern == null)
                 {
                     SetState(EnemyState.Chase);
                     return;
                 }
 
-                // コルーチン開始
                 if (attackCoroutine == null)
                 {
                     attackCoroutine = StartCoroutine(ExecuteAttackRoutine());
@@ -280,7 +267,6 @@ namespace MagicRogue
             }
             else
             {
-                // 連撃終了時 -> 追尾に戻る
                 SetState(EnemyState.Chase);
             }
         }
@@ -302,7 +288,6 @@ namespace MagicRogue
             isAttackingAnimation = true;
             remainingComboHits--;
 
-            // 移動・回転を完全停止（位置・角度固定）
             if (agent != null && agent.isActiveAndEnabled)
             {
                 agent.isStopped = true;
@@ -312,13 +297,11 @@ namespace MagicRogue
 
             TriggerAttackAnimation();
 
-            // 攻撃間隔・アニメーション終了まで固定待機
             yield return new WaitForSeconds(comboInterval);
 
             isAttackingAnimation = false;
             attackCoroutine = null;
 
-            // インターバル終了時点でプレイヤーが範囲外に出ていた場合は即座に追尾（Chase）へ移行
             if (targetPlayer != null)
             {
                 float currentDistance = Vector3.Distance(transform.position, targetPlayer.position);
@@ -438,7 +421,7 @@ namespace MagicRogue
         }
 
         /// <summary>
-        /// ダメージを受けた際の処理（プレイヤー察知・追尾開始）
+        /// ダメージを受けた際の処理（点滅・プレイヤー察知・追尾開始）
         /// </summary>
         public void TakeDamage(float damageAmount)
         {
@@ -456,16 +439,20 @@ namespace MagicRogue
                 Die();
             }
 
+            // ★ ダメージ点滅演出を再生
+            if (damageFlash != null)
+            {
+                damageFlash.CallDamageFlash();
+            }
+
             if (!isDead)
             {
-                // プレイヤー参照の自動確保
                 if (targetPlayer == null)
                 {
                     GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
                     if (playerObj != null) targetPlayer = playerObj.transform;
                 }
 
-                // 攻撃を受けた場合はどんな状態であれ即座にプレイヤーを察知して Chase（追尾）に移行する
                 if (targetPlayer != null)
                 {
                     SetState(EnemyState.Chase);

@@ -56,7 +56,7 @@ namespace MagicRogue
             if (_costText != null && data != null)
             {
                 string prefix = isDebuff ? "+" : "-";
-                _costText.text = $"{prefix}{data.creditCost} Cr";
+                _costText.text = $"{prefix}{data.creditCost}";
             }
 
             if (_cardButton == null) _cardButton = GetComponentInChildren<Button>();

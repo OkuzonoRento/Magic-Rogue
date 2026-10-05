@@ -101,22 +101,63 @@ namespace MagicRogue
         }
 
         /// <summary>
-        /// 自動で空いているスロットへアイテムを追加
+        /// 自動で適切なスロット（既存のスタック優先、なければ空きスロット）へアイテムを追加
         /// </summary>
         public bool AddItem(ItemData data, int amount)
         {
             if (data == null || amount <= 0) return false;
 
-            int emptyIndex = GetEmptySlotIndex();
-            if (emptyIndex != -1)
+            int remainingAmount = amount;
+            int maxStack = data.maxStackSize;
+
+            // 1. 既に同じアイテムが入っているスロットを探してスタック（上限まで加算）
+            for (int i = 0; i < inventorySlots.Length; i++)
             {
-                bool result = AddItemToSlot(data, amount, emptyIndex);
-                CompactInventory(); // 追加後に前詰め整理
-                return result;
+                ItemStack slot = inventorySlots[i];
+                if (slot != null && slot.itemData != null && slot.itemData == data)
+                {
+                    int spaceInSlot = maxStack - slot.amount;
+                    if (spaceInSlot > 0)
+                    {
+                        int addAmount = Mathf.Min(spaceInSlot, remainingAmount);
+                        slot.amount += addAmount;
+                        remainingAmount -= addAmount;
+
+                        if (remainingAmount <= 0)
+                        {
+                            CompactInventory();
+                            return true; // 全てスタック完了
+                        }
+                    }
+                }
             }
 
-            Debug.Log("[Inventory] インベントリが満タンです！");
-            return false;
+            // 2. 入りきらなかった分（または新規アイテム）を空きスロットへ格納
+            while (remainingAmount > 0)
+            {
+                int emptyIndex = GetEmptySlotIndex();
+                if (emptyIndex == -1)
+                {
+                    Debug.Log($"[Inventory] インベントリが満タンです！ (入りきらなかった数: {remainingAmount})");
+                    CompactInventory();
+                    return remainingAmount < amount; // 一部でも拾えたなら true
+                }
+
+                int addAmount = Mathf.Min(maxStack, remainingAmount);
+
+                if (inventorySlots[emptyIndex] == null)
+                {
+                    inventorySlots[emptyIndex] = new ItemStack();
+                }
+
+                inventorySlots[emptyIndex].itemData = data;
+                inventorySlots[emptyIndex].amount = addAmount;
+
+                remainingAmount -= addAmount;
+            }
+
+            CompactInventory();
+            return true;
         }
 
         /// <summary>

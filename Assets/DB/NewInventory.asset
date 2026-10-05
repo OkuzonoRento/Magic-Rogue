@@ -12,64 +12,64 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0de46358483b2f74cadc487621a98739, type: 3}
   m_Name: NewInventory
   m_EditorClassIdentifier: Assembly-CSharp::MagicRogue.InventorySO
-  coins: 4150
+  coins: 1004
   spellSlots:
-  - {fileID: 11400000, guid: 52dc6d838baa26a4d86181f88ede5093, type: 2}
   - {fileID: 11400000, guid: 84d94b946f451c14aa89c938715e4cf6, type: 2}
+  - {fileID: 11400000, guid: e986d233683769243837c192a3ef6c82, type: 2}
   - {fileID: 11400000, guid: 84d94b946f451c14aa89c938715e4cf6, type: 2}
   inventorySlots:
-  - itemData: {fileID: 11400000, guid: e986d233683769243837c192a3ef6c82, type: 2}
-    amount: 1
-  - itemData: {fileID: 11400000, guid: c83c89e698d63f74896f1fb8dec6da39, type: 2}
-    amount: 1
   - itemData: {fileID: 11400000, guid: ce1f8fe535a38294d86c026334a53e7b, type: 2}
-    amount: 1
-  - itemData: {fileID: 11400000, guid: ce1f8fe535a38294d86c026334a53e7b, type: 2}
-    amount: 1
-  - itemData: {fileID: 11400000, guid: ce1f8fe535a38294d86c026334a53e7b, type: 2}
-    amount: 1
-  - itemData: {fileID: 11400000, guid: ce1f8fe535a38294d86c026334a53e7b, type: 2}
-    amount: 1
-  - itemData: {fileID: 11400000, guid: ce1f8fe535a38294d86c026334a53e7b, type: 2}
-    amount: 1
-  - itemData: {fileID: 11400000, guid: ce1f8fe535a38294d86c026334a53e7b, type: 2}
-    amount: 1
-  - itemData: {fileID: 11400000, guid: ce1f8fe535a38294d86c026334a53e7b, type: 2}
-    amount: 1
-  - itemData: {fileID: 11400000, guid: ce1f8fe535a38294d86c026334a53e7b, type: 2}
-    amount: 1
-  - itemData: {fileID: 11400000, guid: ce1f8fe535a38294d86c026334a53e7b, type: 2}
-    amount: 1
-  - itemData: {fileID: 11400000, guid: ce1f8fe535a38294d86c026334a53e7b, type: 2}
-    amount: 1
-  - itemData: {fileID: 11400000, guid: ce1f8fe535a38294d86c026334a53e7b, type: 2}
-    amount: 1
-  - itemData: {fileID: 11400000, guid: ce1f8fe535a38294d86c026334a53e7b, type: 2}
-    amount: 1
-  - itemData: {fileID: 11400000, guid: ce1f8fe535a38294d86c026334a53e7b, type: 2}
-    amount: 1
-  - itemData: {fileID: 11400000, guid: ce1f8fe535a38294d86c026334a53e7b, type: 2}
-    amount: 1
-  - itemData: {fileID: 11400000, guid: ce1f8fe535a38294d86c026334a53e7b, type: 2}
-    amount: 1
-  - itemData: {fileID: 11400000, guid: ce1f8fe535a38294d86c026334a53e7b, type: 2}
-    amount: 1
-  - itemData: {fileID: 11400000, guid: ce1f8fe535a38294d86c026334a53e7b, type: 2}
-    amount: 1
-  - itemData: {fileID: 11400000, guid: ce1f8fe535a38294d86c026334a53e7b, type: 2}
-    amount: 1
-  - itemData: {fileID: 11400000, guid: ce1f8fe535a38294d86c026334a53e7b, type: 2}
-    amount: 1
-  - itemData: {fileID: 11400000, guid: ce1f8fe535a38294d86c026334a53e7b, type: 2}
-    amount: 1
-  - itemData: {fileID: 11400000, guid: ce1f8fe535a38294d86c026334a53e7b, type: 2}
-    amount: 1
-  - itemData: {fileID: 11400000, guid: ce1f8fe535a38294d86c026334a53e7b, type: 2}
-    amount: 1
-  - itemData: {fileID: 11400000, guid: ce1f8fe535a38294d86c026334a53e7b, type: 2}
-    amount: 1
-  - itemData: {fileID: 11400000, guid: ce1f8fe535a38294d86c026334a53e7b, type: 2}
-    amount: 1
+    amount: 26
+  - itemData: {fileID: 0}
+    amount: 0
+  - itemData: {fileID: 0}
+    amount: 0
+  - itemData: {fileID: 0}
+    amount: 0
+  - itemData: {fileID: 0}
+    amount: 0
+  - itemData: {fileID: 0}
+    amount: 0
+  - itemData: {fileID: 0}
+    amount: 0
+  - itemData: {fileID: 0}
+    amount: 0
+  - itemData: {fileID: 0}
+    amount: 0
+  - itemData: {fileID: 0}
+    amount: 0
+  - itemData: {fileID: 0}
+    amount: 0
+  - itemData: {fileID: 0}
+    amount: 0
+  - itemData: {fileID: 0}
+    amount: 0
+  - itemData: {fileID: 0}
+    amount: 0
+  - itemData: {fileID: 0}
+    amount: 0
+  - itemData: {fileID: 0}
+    amount: 0
+  - itemData: {fileID: 0}
+    amount: 0
+  - itemData: {fileID: 0}
+    amount: 0
+  - itemData: {fileID: 0}
+    amount: 0
+  - itemData: {fileID: 0}
+    amount: 0
+  - itemData: {fileID: 0}
+    amount: 0
+  - itemData: {fileID: 0}
+    amount: 0
+  - itemData: {fileID: 0}
+    amount: 0
+  - itemData: {fileID: 0}
+    amount: 0
+  - itemData: {fileID: 0}
+    amount: 0
+  - itemData: {fileID: 0}
+    amount: 0
   - itemData: {fileID: 0}
     amount: 0
   - itemData: {fileID: 0}
