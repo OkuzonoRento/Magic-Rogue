@@ -9,6 +9,9 @@ namespace MagicRogue
     {
         public static GameSceneManager Instance { get; private set; }
 
+        [Header("ローグライク進行設定")]
+        [SerializeField] private int totalStagesPerPhase = 5; // 1Phaseあたりの総Stage数
+
         [Header("選択中データ")]
         [SerializeField] private List<BuffData> selectedGlobalBuffs = new List<BuffData>();
         [SerializeField] private List<BuffData> selectedMapBuffs = new List<BuffData>();
@@ -19,6 +22,12 @@ namespace MagicRogue
 
         [Header("ショップ・回復設定")]
         [SerializeField] private float shopHealRatio = 0.3f; // ショップ到達時に最大HPの30%回復
+
+        // 進行状態プロパティ
+        public int CurrentPhase { get; private set; } = 1;
+        public int CurrentStageIndex { get; private set; } = 1;
+        public MapType CurrentSelectedMapType { get; private set; } = MapType.Normal;
+        public int TotalStagesPerPhase => totalStagesPerPhase;
 
         // 中断データ管理
         public SaveData CurrentSaveData { get; private set; } = new SaveData();
@@ -50,13 +59,17 @@ namespace MagicRogue
         }
 
         /// <summary>
-        /// 【新規ゲーム開始】グローバルバフや選択情報を完全リセットしてシーン遷移
+        /// 【新規ゲーム開始】グローバルバフや選択情報、Phase進行度を完全リセットしてシーン遷移
         /// </summary>
         public void StartNewGame()
         {
             selectedGlobalBuffs.Clear();
             selectedMapBuffs.Clear();
             selectedMapName = string.Empty;
+
+            CurrentPhase = 1;
+            CurrentStageIndex = 1;
+            CurrentSelectedMapType = MapType.Normal;
 
             CurrentSaveData = new SaveData
             {
@@ -65,7 +78,9 @@ namespace MagicRogue
                 hasConfirmedSelections = false,
                 currentHealth = 100f, // 初期HP
                 maxHealth = 100f,
-                playerGold = 0
+                playerGold = 0,
+                currentPhase = 1,
+                currentStageIndex = 1
             };
 
             // 乱数シードを適用
@@ -104,6 +119,68 @@ namespace MagicRogue
 
         #endregion
 
+        #region マップ進行・クリア判定
+
+        /// <summary>
+        /// マップ選択時に呼ばれる
+        /// </summary>
+        public void SelectMap(string mapName, MapType mapType = MapType.Normal)
+        {
+            selectedMapName = mapName;
+            CurrentSelectedMapType = mapType;
+            selectedMapBuffs.Clear();
+
+            if (MapBuffManager.Instance != null)
+            {
+                MapBuffManager.Instance.ResetMapBuffs();
+            }
+
+            SaveSelectionState();
+        }
+
+        /// <summary>
+        /// バトル・イベントマップクリア時にポータル等から呼び出す処理
+        /// </summary>
+        public void CompleteCurrentMap()
+        {
+            if (CurrentSelectedMapType == MapType.Boss)
+            {
+                // ボス撃破！ → 次の PHASE へ昇格、敵ステータス強化、Stageリセット
+                CurrentPhase++;
+                CurrentStageIndex = 1;
+
+                // グローバルバフ選択へ
+                SaveSelectionState();
+                ChangeSceneWithFade("02_GlobalBuffSelect");
+            }
+            else
+            {
+                // 通常・イベントマップクリア時
+                if (CurrentStageIndex < totalStagesPerPhase)
+                {
+                    CurrentStageIndex++;
+                }
+                else
+                {
+                    // ボスStageでNormalを選んだ場合はStageIndexを進めずボスStageにとどまる
+                }
+
+                // 次の Stage のマップ選択（03_MapSelect）へ
+                SaveSelectionState();
+                ChangeSceneWithFade("03_MapSelect");
+            }
+        }
+
+        /// <summary>
+        /// Phaseに応じた敵のステータス倍率（Phase 1=1.0x, Phase 2=1.2x...）
+        /// </summary>
+        public float GetEnemyStatMultiplier()
+        {
+            return 1.0f + (CurrentPhase - 1) * 0.2f;
+        }
+
+        #endregion
+
         #region バフ・マップ選択＆厳選対策
 
         public void ToggleGlobalBuff(BuffData buff, bool isSelected)
@@ -121,19 +198,6 @@ namespace MagicRogue
         public bool IsGlobalBuffSelected(BuffData buff)
         {
             return selectedGlobalBuffs.Contains(buff);
-        }
-
-        public void SelectMap(string mapName)
-        {
-            selectedMapName = mapName;
-            selectedMapBuffs.Clear();
-
-            if (MapBuffManager.Instance != null)
-            {
-                MapBuffManager.Instance.ResetMapBuffs();
-            }
-
-            SaveSelectionState();
         }
 
         public void ToggleMapBuff(BuffData buff, bool isSelected)
@@ -296,6 +360,8 @@ namespace MagicRogue
             CurrentSaveData.selectedMapName = selectedMapName;
             CurrentSaveData.selectedGlobalBuffNames = selectedGlobalBuffs.ConvertAll(b => b.name);
             CurrentSaveData.selectedMapBuffNames = selectedMapBuffs.ConvertAll(b => b.name);
+            CurrentSaveData.currentPhase = CurrentPhase;
+            CurrentSaveData.currentStageIndex = CurrentStageIndex;
 
             SaveDataToDisk();
         }
@@ -326,6 +392,9 @@ namespace MagicRogue
             if (CurrentSaveData == null) return;
 
             selectedMapName = CurrentSaveData.selectedMapName;
+            CurrentPhase = CurrentSaveData.currentPhase > 0 ? CurrentSaveData.currentPhase : 1;
+            CurrentStageIndex = CurrentSaveData.currentStageIndex > 0 ? CurrentSaveData.currentStageIndex : 1;
+
             selectedGlobalBuffs = RestoreBuffsFromNames(CurrentSaveData.selectedGlobalBuffNames);
             selectedMapBuffs = RestoreBuffsFromNames(CurrentSaveData.selectedMapBuffNames);
         }
@@ -333,6 +402,8 @@ namespace MagicRogue
         private List<BuffData> RestoreBuffsFromNames(List<string> names)
         {
             List<BuffData> list = new List<BuffData>();
+            if (names == null) return list;
+
             foreach (var name in names)
             {
                 BuffData found = allBuffDatabase.Find(b => b != null && b.name == name);

@@ -16,6 +16,10 @@ namespace MagicRogue
     {
         public GameStateType stateType = GameStateType.None;
 
+        // --- 進行度データ（PHASE & Stage） ---
+        public int currentPhase = 1;
+        public int currentStageIndex = 1;
+
         // --- 選択・マップデータ ---
         public string selectedMapName;
         public List<string> selectedGlobalBuffNames = new List<string>();
