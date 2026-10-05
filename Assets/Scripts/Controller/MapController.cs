@@ -28,7 +28,7 @@ namespace MagicRogue
 
             if (navMeshSurface != null)
             {
-                navMeshSurface.BuildNavMesh();
+                //navMeshSurface.BuildNavMesh();
             }
         }
 
