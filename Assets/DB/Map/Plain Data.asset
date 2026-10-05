@@ -10,13 +10,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 33f94cca46508334d90b9315133371ed, type: 3}
-  m_Name: Plain_01
+  m_Name: Plain Data
   m_EditorClassIdentifier: Assembly-CSharp::MagicRogue.MapData
-  mapType: 0
-  mapName: Plain_01
-  displayName: "\u5E73\u539F"
-  model3DPrefab: {fileID: 5012261517174378115, guid: 101babc42f0e2a6458dcc4ae928c99f8, type: 3}
-  description: 
+  mapName: Plain
   spawnableEnemies:
   - enemyPrefab: {fileID: 5729720823639832441, guid: c3e8952719357d34f9981f20d091c2f4, type: 3}
     spawnWeight: 40
