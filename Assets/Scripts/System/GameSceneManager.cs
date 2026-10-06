@@ -3,6 +3,10 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
+
 namespace MagicRogue
 {
     public class GameSceneManager : MonoBehaviour
@@ -12,7 +16,14 @@ namespace MagicRogue
         [Header("ローグライク進行設定")]
         [SerializeField] private int totalStagesPerPhase = 5;
 
-        [Header("デフォルト遷移シーン名設定")]
+#if UNITY_EDITOR
+        [Header("遷移シーンアタッチ（Editor用ドラッグ＆ドロップ）")]
+        [SerializeField] private SceneAsset buffSelectSceneAsset;
+        [SerializeField] private SceneAsset mapSelectSceneAsset;
+        [SerializeField] private SceneAsset shopSceneAsset;
+#endif
+
+        [Header("デフォルト遷移シーン名設定（自動同期）")]
         [SerializeField] private string buffSelectSceneName = "02_GlobalBuffSelect";
         [SerializeField] private string mapSelectSceneName = "03_MapSelect";
         [SerializeField] private string shopSceneName = "06_Shop";
@@ -51,6 +62,16 @@ namespace MagicRogue
             {
                 Destroy(gameObject);
             }
+        }
+
+        private void OnValidate()
+        {
+#if UNITY_EDITOR
+            // Inspector で SceneAsset が指定された場合、対応する文字列フィールドへ自動同期
+            if (buffSelectSceneAsset != null) buffSelectSceneName = buffSelectSceneAsset.name;
+            if (mapSelectSceneAsset != null) mapSelectSceneName = mapSelectSceneAsset.name;
+            if (shopSceneAsset != null) shopSceneName = shopSceneAsset.name;
+#endif
         }
 
         #region メインメニュー & 新規・再開
