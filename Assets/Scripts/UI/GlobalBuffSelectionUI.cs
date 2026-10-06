@@ -181,7 +181,7 @@ namespace MagicRogue
             {
                 if (GameSceneManager.Instance != null)
                 {
-                    GameSceneManager.Instance.ChangeSceneWithFade("03_MapSelect");
+                    GameSceneManager.Instance.ConfirmGlobalBuffsAndGoToMapSelect();
                 }
             }
         }

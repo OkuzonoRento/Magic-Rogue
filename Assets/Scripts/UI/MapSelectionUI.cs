@@ -263,7 +263,7 @@ namespace MagicRogue
 
             if (GameSceneManager.Instance != null)
             {
-                GameSceneManager.Instance.SelectMap(_currentlySelectedMap);
+                GameSceneManager.Instance.SelectMapAndGoToMapBuffSelect(_currentlySelectedMap);
             }
         }
     }

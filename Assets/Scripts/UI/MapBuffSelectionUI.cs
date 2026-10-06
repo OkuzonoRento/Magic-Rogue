@@ -80,7 +80,7 @@ namespace MagicRogue
 
             if (GameSceneManager.Instance != null)
             {
-                GameSceneManager.Instance.ConfirmSelectionsAndStartInGame();
+                GameSceneManager.Instance.ConfirmMapBuffsAndStartInGame();
             }
         }
 

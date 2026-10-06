@@ -52,8 +52,9 @@ namespace MagicRogue
 
         private void InitializeSelectedMap()
         {
-            string selectedName = GameSceneManager.Instance != null
-                ? GameSceneManager.Instance.CurrentSaveData.selectedMapName
+            // ★【CS1061修正箇所】CurrentSaveData 経由ではなく SelectedMapData からマップ名を取得
+            string selectedName = (GameSceneManager.Instance != null && GameSceneManager.Instance.SelectedMapData != null)
+                ? GameSceneManager.Instance.SelectedMapData.mapName
                 : string.Empty;
 
             int targetIndex = 0;

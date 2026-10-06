@@ -586,44 +586,21 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MagicRogue.GameSceneManager
   totalStagesPerPhase: 5
-  buffSelectSceneAsset: {fileID: 102900000, guid: 0d19b21532639dc4d9f2eb24f3cf9230, type: 3}
+  mainMenuSceneAsset: {fileID: 102900000, guid: 80af298955b8aa64784600c1c1b1675f, type: 3}
+  globalBuffSelectSceneAsset: {fileID: 102900000, guid: 0d19b21532639dc4d9f2eb24f3cf9230, type: 3}
   mapSelectSceneAsset: {fileID: 102900000, guid: 7f5f497798691e5499bc71f9a698e732, type: 3}
+  mapBuffSelectSceneAsset: {fileID: 102900000, guid: e156ac4bc26458545a70e8638e2f77b5, type: 3}
+  inGameSceneAsset: {fileID: 102900000, guid: 99c9720ab356a0642a771bea13969a05, type: 3}
   shopSceneAsset: {fileID: 102900000, guid: 70810be376c5e1040b0569e0916752dd, type: 3}
-  buffSelectSceneName: 02_GlobalBuffSelect
+  mainMenuSceneName: 01_MainMenu
+  globalBuffSelectSceneName: 02_GlobalBuffSelect
   mapSelectSceneName: 03_MapSelect
+  mapBuffSelectSceneName: 04_MapBuffSelect
+  inGameSceneName: 05_InGame
   shopSceneName: 06_Shop
   selectedGlobalBuffs: []
   selectedMapBuffs: []
   selectedMapName: 
-  allBuffDatabase:
-  - {fileID: 11400000, guid: f8acc10866fd46840ae3ff6d98e8c826, type: 2}
-  - {fileID: 11400000, guid: abbc91ec37bf13949855ef6fb1c377c0, type: 2}
-  - {fileID: 11400000, guid: 668a02d0d64ab694ca05734b5ff4d70a, type: 2}
-  - {fileID: 11400000, guid: 43c9ece38ac874f4fbc50bfe6e0c3171, type: 2}
-  - {fileID: 11400000, guid: 1ff588e83384b954c93f8caf633a94ee, type: 2}
-  - {fileID: 11400000, guid: e42be07c126211c43b5f581117e924cc, type: 2}
-  - {fileID: 11400000, guid: 2952824265fecfe4ab51e4edf73e10fc, type: 2}
-  - {fileID: 11400000, guid: 242c9d393fa7de14d9b8f12b32e04018, type: 2}
-  - {fileID: 11400000, guid: 0461641f2bde4cf499255844cf474e2c, type: 2}
-  - {fileID: 11400000, guid: 2c6115d155dd53e41bd7e7c955c7d4c4, type: 2}
-  - {fileID: 11400000, guid: 27fff21891b16774981f36a82352c0f5, type: 2}
-  - {fileID: 11400000, guid: a4c5dcebbb85fe848be9006f7ec4cb8d, type: 2}
-  - {fileID: 11400000, guid: ee199137d2090ae449dd4d0ff9ef617b, type: 2}
-  - {fileID: 11400000, guid: cbe8319fdf5d6994899adbd779739edf, type: 2}
-  - {fileID: 11400000, guid: 193cf0190dbc8f949a24cb2061e3ba6c, type: 2}
-  - {fileID: 11400000, guid: 87adf3234bd51164ea05dd5c4ec6d95e, type: 2}
-  - {fileID: 11400000, guid: 93cf42a716265794faac082c85723eec, type: 2}
-  - {fileID: 11400000, guid: 6c6666b42512a3243b1fe36c53b2950f, type: 2}
-  - {fileID: 11400000, guid: 117550bd5c45d8c4984aea4482660d0b, type: 2}
-  - {fileID: 11400000, guid: 8702e49bda97bc64fbc4b82ecc4b264e, type: 2}
-  - {fileID: 11400000, guid: bad707a7dfe50ed4e987cac992c11688, type: 2}
-  - {fileID: 11400000, guid: f82d4e636d6ee314eb3775c6af221102, type: 2}
-  - {fileID: 11400000, guid: 1ad6b36ac9903754d878328b8514990d, type: 2}
-  - {fileID: 11400000, guid: 58397f9e22115554d9d59c89be420ab7, type: 2}
-  - {fileID: 11400000, guid: 0f2d2dcfa68a42f41ba3fee7d304d887, type: 2}
-  - {fileID: 11400000, guid: c9b99010c7d6c7f4e9d488ab1af5b45e, type: 2}
-  - {fileID: 11400000, guid: 13f8bef6b81aaf948964d93c15cd82ac, type: 2}
-  shopHealRatio: 0.3
 --- !u!4 &654257141
 Transform:
   m_ObjectHideFlags: 0

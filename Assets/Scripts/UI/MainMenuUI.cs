@@ -17,12 +17,9 @@ namespace MagicRogue
 
         private void Start()
         {
-            bool hasSave = GameSceneManager.Instance != null && GameSceneManager.Instance.HasSavedGame();
-
             if (continueButton != null)
             {
-                continueButton.interactable = hasSave;
-                continueButton.onClick.AddListener(OnContinueClicked);
+                continueButton.interactable = false; // セーブ機能を一時オフにするため非活性化
             }
 
             if (newGameButton != null) newGameButton.onClick.AddListener(OnNewGameClicked);
@@ -39,15 +36,6 @@ namespace MagicRogue
             if (GameSceneManager.Instance != null)
             {
                 GameSceneManager.Instance.StartNewGame();
-            }
-        }
-
-        private void OnContinueClicked()
-        {
-            SetButtonsInteractable(false);
-            if (GameSceneManager.Instance != null)
-            {
-                GameSceneManager.Instance.ResumeGame();
             }
         }
 
@@ -73,10 +61,6 @@ namespace MagicRogue
         private void SetButtonsInteractable(bool interactable)
         {
             if (newGameButton != null) newGameButton.interactable = interactable;
-            if (continueButton != null && GameSceneManager.Instance != null && GameSceneManager.Instance.HasSavedGame())
-            {
-                continueButton.interactable = interactable;
-            }
             if (settingsButton != null) settingsButton.interactable = interactable;
             if (quitButton != null) quitButton.interactable = interactable;
         }

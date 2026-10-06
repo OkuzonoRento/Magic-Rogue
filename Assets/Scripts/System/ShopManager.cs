@@ -46,8 +46,6 @@ namespace MagicRogue
         [SerializeField] private Color sellColor = Color.yellow;
         [SerializeField] private Color defaultPriceColor = Color.white;
 
-        [Header("シーン遷移")]
-        [SerializeField] private string nextSceneName = "03_MapSelect";
 
         // 自動生成されるスロットの保持用リスト
         private List<ItemSlotUI> inventorySlots = new();
@@ -475,9 +473,10 @@ namespace MagicRogue
 
         private void OnExitButtonClicked()
         {
+            // ★ GameSceneManager 経由で Fade 遷移してマップ選択へ戻る
             if (GameSceneManager.Instance != null)
             {
-                GameSceneManager.Instance.ChangeScene(nextSceneName);
+                GameSceneManager.Instance.ExitShopAndGoToMapSelect();
             }
         }
     }
