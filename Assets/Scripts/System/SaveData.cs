@@ -33,6 +33,6 @@ namespace MagicRogue
         public float currentHealth;
         public float maxHealth;
         public int playerGold;
-        public List<string> inventoryItemIDs = new List<string>(); // 所持アイテム/魔法など
+        public List<string> inventoryItemIDs = new List<string>();
     }
 }

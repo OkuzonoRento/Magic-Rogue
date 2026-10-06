@@ -8,11 +8,10 @@ namespace MagicRogue
     {
         [Header("UI Reference")]
         [SerializeField] private GameObject _panelObject;
-        [SerializeField] private BuffCardUI[] _cardUIList; // 3枚のBuffCardUI
-        [SerializeField] private Button _confirmButton;   // 決定ボタン
+        [SerializeField] private BuffCardUI[] _cardUIList;
+        [SerializeField] private Button _confirmButton;
 
         [Header("Buff Database")]
-        [Tooltip("Mapバフのプール（MapBuffDataGeneratorで生成したアセット群）")]
         [SerializeField] private List<BuffData> _mapBuffPool = new List<BuffData>();
 
         private BuffCardUI _selectedCard = null;
@@ -28,20 +27,14 @@ namespace MagicRogue
             }
         }
 
-        /// <summary>
-        /// マップ決定時・ゲーム開始時に呼び出して3択画面を開く
-        /// </summary>
         public void OpenSelectionUI()
         {
             if (_panelObject != null) _panelObject.SetActive(true);
             Time.timeScale = 0f;
 
             _selectedCard = null;
-
-            // 初期状態では1つも選ばれていないため決定ボタンを押不可にする
             if (_confirmButton != null) _confirmButton.interactable = false;
 
-            // プールから3つ抽出
             List<BuffData> selectedBuffs = GetRandomMapBuffs(3);
 
             for (int i = 0; i < _cardUIList.Length; i++)
@@ -58,27 +51,19 @@ namespace MagicRogue
             }
         }
 
-        /// <summary>
-        /// カードがクリックされた時（単一選択・アニメーション適用）
-        /// </summary>
         private void OnCardSelected(BuffCardUI clickedCard)
         {
             _selectedCard = clickedCard;
 
-            // 3つのカードのうち、押されたものだけを選択（拡大・ハイライト）にし、他を解除する
             foreach (var card in _cardUIList)
             {
                 bool isTarget = (card == clickedCard);
                 card.SetSelected(isTarget);
             }
 
-            // 1つ選択されたので決定ボタンを有効化
             if (_confirmButton != null) _confirmButton.interactable = true;
         }
 
-        /// <summary>
-        /// 「決定ボタン」を押したときの処理
-        /// </summary>
         private void OnConfirmButtonClicked()
         {
             if (_selectedCard == null) return;
@@ -88,14 +73,11 @@ namespace MagicRogue
             BuffData chosenBuff = _selectedCard.GetData();
             if (chosenBuff != null && GameSceneManager.Instance != null)
             {
-                // 選択されたバフをGameSceneManagerに登録
                 GameSceneManager.Instance.ToggleMapBuff(chosenBuff, true);
-                Debug.Log($"[MapBuffSelectionUI] 決定されたMapバフ: {chosenBuff.buffName}");
             }
 
             if (_panelObject != null) _panelObject.SetActive(false);
 
-            // インゲームへ遷移・開始
             if (GameSceneManager.Instance != null)
             {
                 GameSceneManager.Instance.ConfirmSelectionsAndStartInGame();

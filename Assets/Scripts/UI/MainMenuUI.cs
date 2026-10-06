@@ -17,7 +17,6 @@ namespace MagicRogue
 
         private void Start()
         {
-            // 中断データの有無を判定して「つづきから」ボタンの有効化切り替え
             bool hasSave = GameSceneManager.Instance != null && GameSceneManager.Instance.HasSavedGame();
 
             if (continueButton != null)
@@ -26,31 +25,12 @@ namespace MagicRogue
                 continueButton.onClick.AddListener(OnContinueClicked);
             }
 
-            if (newGameButton != null)
-            {
-                newGameButton.onClick.AddListener(OnNewGameClicked);
-            }
+            if (newGameButton != null) newGameButton.onClick.AddListener(OnNewGameClicked);
+            if (settingsButton != null) settingsButton.onClick.AddListener(OpenSettings);
+            if (settingsCloseButton != null) settingsCloseButton.onClick.AddListener(CloseSettings);
+            if (quitButton != null) quitButton.onClick.AddListener(OnQuitClicked);
 
-            if (settingsButton != null)
-            {
-                settingsButton.onClick.AddListener(OpenSettings);
-            }
-
-            if (settingsCloseButton != null)
-            {
-                settingsCloseButton.onClick.AddListener(CloseSettings);
-            }
-
-            if (quitButton != null)
-            {
-                quitButton.onClick.AddListener(OnQuitClicked);
-            }
-
-            // 初期状態では設定パネルを閉じておく
-            if (settingsPanel != null)
-            {
-                settingsPanel.SetActive(false);
-            }
+            if (settingsPanel != null) settingsPanel.SetActive(false);
         }
 
         private void OnNewGameClicked()
@@ -73,18 +53,12 @@ namespace MagicRogue
 
         private void OpenSettings()
         {
-            if (settingsPanel != null)
-            {
-                settingsPanel.SetActive(true);
-            }
+            if (settingsPanel != null) settingsPanel.SetActive(true);
         }
 
         private void CloseSettings()
         {
-            if (settingsPanel != null)
-            {
-                settingsPanel.SetActive(false);
-            }
+            if (settingsPanel != null) settingsPanel.SetActive(false);
         }
 
         private void OnQuitClicked()

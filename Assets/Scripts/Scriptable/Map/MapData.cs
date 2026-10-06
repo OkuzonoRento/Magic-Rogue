@@ -47,10 +47,10 @@ namespace MagicRogue
         public string description;
 
         [Header("インゲーム生成設定")]
-        [Tooltip("インゲームで動的に生成するステージ（地形・ギミック）全体のプレハブ")]
+        [Tooltip("インゲーム中に生成するステージモデル全体のプレハブ")]
         public GameObject mapStagePrefab;
 
-        [Tooltip("プレイヤーの初期スポーン座標")]
+        [Tooltip("プレイヤーの初期スポーン位置")]
         public Vector3 playerSpawnPosition = Vector3.zero;
 
         [Tooltip("プレイヤーの初期スポーン回転")]
@@ -74,24 +74,17 @@ namespace MagicRogue
         public GameObject portalPrefab;
 
 #if UNITY_EDITOR
-        /// <summary>
-        /// Inspector 上で値が変更されたときに自動実行されるメソッド
-        /// </summary>
         private void OnValidate()
         {
             if (string.IsNullOrWhiteSpace(mapName)) return;
 
-            // 実行中（Playモード）やアセットのパスが取得できない場合はリネームしない
             string assetPath = AssetDatabase.GetAssetPath(this);
             if (string.IsNullOrEmpty(assetPath)) return;
 
-            // 現在のアセット名を取得
             string currentAssetName = System.IO.Path.GetFileNameWithoutExtension(assetPath);
 
-            // mapName とアセット名が異なる場合のみリネームを実行
             if (currentAssetName != mapName)
             {
-                // 次のフレームで安全にリネーム処理を行うよう遅延実行
                 EditorApplication.delayCall += () =>
                 {
                     if (this == null) return;

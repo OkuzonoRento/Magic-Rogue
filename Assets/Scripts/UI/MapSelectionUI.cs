@@ -57,7 +57,7 @@ namespace MagicRogue
             GenerateMapOptions();
         }
 
-        #region 上部ロードマップUI
+        #region ロードマップUI & 生成
 
         private void BuildTopProgressBar()
         {
@@ -65,10 +65,7 @@ namespace MagicRogue
 
             SetupProgressLayout();
 
-            foreach (Transform child in _progressContainer)
-            {
-                Destroy(child.gameObject);
-            }
+            foreach (Transform child in _progressContainer) Destroy(child.gameObject);
 
             int currentStage = (GameSceneManager.Instance != null) ? GameSceneManager.Instance.CurrentStageIndex : 1;
             int midStage = Mathf.CeilToInt(_totalStagesPerPhase / 2.0f);
@@ -84,22 +81,10 @@ namespace MagicRogue
                 {
                     img.raycastTarget = false;
 
-                    if (i == 1)
-                    {
-                        if (_firstNormalSprite != null) img.sprite = _firstNormalSprite;
-                    }
-                    else if (i == _totalStagesPerPhase)
-                    {
-                        if (_bossWithLineSprite != null) img.sprite = _bossWithLineSprite;
-                    }
-                    else if (i == midStage)
-                    {
-                        if (_eventWithLineSprite != null) img.sprite = _eventWithLineSprite;
-                    }
-                    else
-                    {
-                        if (_normalWithLineSprite != null) img.sprite = _normalWithLineSprite;
-                    }
+                    if (i == 1 && _firstNormalSprite != null) img.sprite = _firstNormalSprite;
+                    else if (i == _totalStagesPerPhase && _bossWithLineSprite != null) img.sprite = _bossWithLineSprite;
+                    else if (i == midStage && _eventWithLineSprite != null) img.sprite = _eventWithLineSprite;
+                    else if (_normalWithLineSprite != null) img.sprite = _normalWithLineSprite;
 
                     img.color = (i < currentStage) ? new Color(0.6f, 0.6f, 0.6f, 1f) : Color.white;
                     img.SetNativeSize();
@@ -135,8 +120,6 @@ namespace MagicRogue
             layout.spacing = _overlapSpacing;
             layout.childControlWidth = true;
             layout.childControlHeight = false;
-            layout.childForceExpandWidth = false;
-            layout.childForceExpandHeight = false;
 
             if (!_progressContainer.TryGetComponent<ContentSizeFitter>(out var fitter))
             {
@@ -148,24 +131,13 @@ namespace MagicRogue
 
         private void SetNodeText(GameObject iconObj, int stageIndex, int midStage)
         {
-            string labelText = "";
-            if (stageIndex == _totalStagesPerPhase) labelText = "BOSS";
-            else if (stageIndex == midStage) labelText = "EVENT";
-            else labelText = $"St.{stageIndex}";
+            string labelText = stageIndex == _totalStagesPerPhase ? "BOSS" : (stageIndex == midStage ? "EVENT" : $"St.{stageIndex}");
 
-            if (iconObj.TryGetComponent<TextMeshProUGUI>(out var text))
-            {
-                text.text = labelText;
-                text.raycastTarget = false;
-            }
+            if (iconObj.TryGetComponent<TextMeshProUGUI>(out var text)) text.text = labelText;
             else
             {
                 var childText = iconObj.GetComponentInChildren<TextMeshProUGUI>();
-                if (childText != null)
-                {
-                    childText.text = labelText;
-                    childText.raycastTarget = false;
-                }
+                if (childText != null) childText.text = labelText;
             }
         }
 
@@ -178,34 +150,15 @@ namespace MagicRogue
                 GameObject playerObj = new GameObject("PlayerIcon", typeof(RectTransform), typeof(Image));
                 playerObj.transform.SetParent(iconObj.transform, false);
                 playerIconTransform = playerObj.transform;
-
-                RectTransform rect = playerObj.GetComponent<RectTransform>();
-                rect.anchoredPosition = Vector2.zero;
             }
 
             if (playerIconTransform != null)
             {
                 playerIconTransform.gameObject.SetActive(isCurrentStage);
 
-                if (isCurrentStage)
+                if (isCurrentStage && playerIconTransform.TryGetComponent<Image>(out var playerImage))
                 {
-                    if (playerIconTransform.TryGetComponent<Image>(out var playerImage))
-                    {
-                        playerImage.raycastTarget = false;
-                        if (_playerFaceSprite != null)
-                        {
-                            playerImage.sprite = _playerFaceSprite;
-                            playerImage.SetNativeSize();
-
-                            RectTransform parentRect = iconObj.GetComponent<RectTransform>();
-                            if (parentRect != null)
-                            {
-                                float targetSize = parentRect.rect.height * _playerIconScale;
-                                playerImage.rectTransform.sizeDelta = new Vector2(targetSize, targetSize);
-                            }
-                        }
-                    }
-
+                    if (_playerFaceSprite != null) playerImage.sprite = _playerFaceSprite;
                     if (!playerIconTransform.TryGetComponent<Canvas>(out var playerCanvas))
                     {
                         playerCanvas = playerIconTransform.gameObject.AddComponent<Canvas>();
@@ -216,19 +169,10 @@ namespace MagicRogue
             }
         }
 
-        #endregion
-
-        #region 3Dマップ選択肢の生成
-
         private void GenerateMapOptions()
         {
-            foreach (var node in _spawnedNodes)
-            {
-                if (node != null) Destroy(node.gameObject);
-            }
+            foreach (var node in _spawnedNodes) if (node != null) Destroy(node.gameObject);
             _spawnedNodes.Clear();
-            _currentlySelectedNode = null;
-            _currentlySelectedMap = null;
 
             int currentStage = (GameSceneManager.Instance != null) ? GameSceneManager.Instance.CurrentStageIndex : 1;
             int midStage = Mathf.CeilToInt(_totalStagesPerPhase / 2.0f);
@@ -237,33 +181,13 @@ namespace MagicRogue
 
             if (currentStage >= _totalStagesPerPhase)
             {
-                int bossIndex = Random.Range(0, _nodeSpawnPoints.Length);
-                List<MapData> normalPicksForBoss = GetRandomUniqueMaps(_availableNormalMaps, 2);
-                int normalIdx = 0;
-
-                for (int i = 0; i < _nodeSpawnPoints.Length; i++)
-                {
-                    if (i == bossIndex)
-                    {
-                        selectedMaps.Add(_bossMapData);
-                    }
-                    else if (normalIdx < normalPicksForBoss.Count)
-                    {
-                        selectedMaps.Add(normalPicksForBoss[normalIdx]);
-                        normalIdx++;
-                    }
-                }
+                selectedMaps.Add(_bossMapData);
+                selectedMaps.AddRange(GetRandomUniqueMaps(_availableNormalMaps, 2));
             }
-            else if (currentStage == midStage)
+            else if (currentStage == midStage && _availableEventMaps.Count > 0)
             {
-                if (_availableEventMaps != null && _availableEventMaps.Count > 0)
-                {
-                    selectedMaps.Add(_availableEventMaps[Random.Range(0, _availableEventMaps.Count)]);
-                }
-
-                int needNormal = 3 - selectedMaps.Count;
-                selectedMaps.AddRange(GetRandomUniqueMaps(_availableNormalMaps, needNormal));
-                ShuffleList(selectedMaps);
+                selectedMaps.Add(_availableEventMaps[Random.Range(0, _availableEventMaps.Count)]);
+                selectedMaps.AddRange(GetRandomUniqueMaps(_availableNormalMaps, 2));
             }
             else
             {
@@ -288,39 +212,14 @@ namespace MagicRogue
                 node3D = modelObj.AddComponent<MapSelectNode3D>();
             }
 
-            if (node3D != null)
+            node3D.Setup(data, OnMapNodeClicked);
+            _spawnedNodes.Add(node3D);
+
+            if (uiButton != null)
             {
-                node3D.Setup(data, OnMapNodeClicked);
-                _spawnedNodes.Add(node3D);
-
-                if (uiButton != null)
-                {
-                    uiButton.onClick.RemoveAllListeners();
-                    uiButton.onClick.AddListener(() =>
-                    {
-                        OnMapNodeClicked(node3D, data);
-                    });
-
-                    SetupButtonHoverTrigger(uiButton, node3D);
-                }
+                uiButton.onClick.RemoveAllListeners();
+                uiButton.onClick.AddListener(() => OnMapNodeClicked(node3D, data));
             }
-        }
-
-        private void SetupButtonHoverTrigger(Button button, MapSelectNode3D node3D)
-        {
-            if (!button.TryGetComponent<EventTrigger>(out var trigger))
-            {
-                trigger = button.gameObject.AddComponent<EventTrigger>();
-            }
-            trigger.triggers.Clear();
-
-            var entryHover = new EventTrigger.Entry { eventID = EventTriggerType.PointerEnter };
-            entryHover.callback.AddListener((_) => node3D.SetHoverState(true));
-            trigger.triggers.Add(entryHover);
-
-            var entryExit = new EventTrigger.Entry { eventID = EventTriggerType.PointerExit };
-            entryExit.callback.AddListener((_) => node3D.SetHoverState(false));
-            trigger.triggers.Add(entryExit);
         }
 
         private List<MapData> GetRandomUniqueMaps(List<MapData> sourceList, int count)
@@ -338,61 +237,24 @@ namespace MagicRogue
             return result;
         }
 
-        private void ShuffleList<T>(List<T> list)
-        {
-            for (int i = 0; i < list.Count; i++)
-            {
-                T temp = list[i];
-                int randomIndex = Random.Range(i, list.Count);
-                list[i] = list[randomIndex];
-                list[randomIndex] = temp;
-            }
-        }
-
         #endregion
-
-        #region ノード選択 & 決定
 
         private void OnMapNodeClicked(MapSelectNode3D clickedNode, MapData selectedData)
         {
-            // 同じノードオブジェクトが再度押された場合のみ選択解除
             if (_currentlySelectedNode == clickedNode)
             {
                 _currentlySelectedNode = null;
                 _currentlySelectedMap = null;
-
-                foreach (var node in _spawnedNodes)
-                {
-                    if (node != null)
-                    {
-                        node.SetSelectedState(false);
-                    }
-                }
-
-                if (_confirmButton != null)
-                {
-                    _confirmButton.interactable = false;
-                }
-
+                foreach (var node in _spawnedNodes) if (node != null) node.SetSelectedState(false);
+                if (_confirmButton != null) _confirmButton.interactable = false;
                 return;
             }
 
-            // 新しいノード（または別のノード）を選択する場合
             _currentlySelectedNode = clickedNode;
             _currentlySelectedMap = selectedData;
 
-            foreach (var node in _spawnedNodes)
-            {
-                if (node != null)
-                {
-                    node.SetSelectedState(node == clickedNode);
-                }
-            }
-
-            if (_confirmButton != null)
-            {
-                _confirmButton.interactable = true;
-            }
+            foreach (var node in _spawnedNodes) if (node != null) node.SetSelectedState(node == clickedNode);
+            if (_confirmButton != null) _confirmButton.interactable = true;
         }
 
         private void OnConfirmButtonClicked()
@@ -404,7 +266,5 @@ namespace MagicRogue
                 GameSceneManager.Instance.SelectMap(_currentlySelectedMap);
             }
         }
-
-        #endregion
     }
 }

@@ -1,273 +1,87 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace MagicRogue
 {
-    [RequireComponent(typeof(Collider))]
     public class MagicProjectile : MonoBehaviour
     {
+        [Header("弾パラメータ（Setup時にMagicDataから自動設定）")]
         private MagicData magicData;
         private Vector3 moveDirection;
-        private float finalDamage;
-        private Transform targetEnemy;
-        private Transform ownerPlayer;
+        private float attackMultiplier = 1f;
+        private BuffHandler ownerPlayerBuffHandler;
 
-        private int remainingSplits;
-        private GameObject lastHitEnemy;
-        private float spawnTime;
-        private bool isReturning = false;
-        private float laserTimer = 0f;
-
-        [Header("Homing Settings")]
-        [SerializeField] private float homingDelay = 0.25f;
-
-        public void Setup(MagicData data, Vector3 direction, float damageMultiplier = 1f, int currentSplits = -1, GameObject ignoredEnemy = null)
+        /// <summary>
+        /// 弾の初期化メソッド
+        /// </summary>
+        public void Setup(MagicData data, Vector3 direction, float atkMultiplier, BuffHandler ownerBuffs = null)
         {
             magicData = data;
-            moveDirection = new Vector3(direction.x, 0f, direction.z).normalized;
-            finalDamage = data != null ? data.damage * damageMultiplier : 0f;
-            spawnTime = Time.time;
-            lastHitEnemy = ignoredEnemy;
+            moveDirection = direction.normalized;
+            attackMultiplier = atkMultiplier;
 
-            remainingSplits = (data != null && currentSplits == -1) ? data.maxSplitCount : currentSplits;
-
-            GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
-            if (playerObj != null) ownerPlayer = playerObj.transform;
-
-            if (magicData != null && magicData.movementType == MovementType.Homing)
+            if (ownerBuffs != null)
             {
-                targetEnemy = FindNearestEnemy();
+                ownerPlayerBuffHandler = ownerBuffs;
+            }
+            else
+            {
+                GameObject player = GameObject.FindWithTag("Player");
+                if (player != null)
+                {
+                    ownerPlayerBuffHandler = player.GetComponent<BuffHandler>();
+                }
             }
 
-            if (magicData != null)
+            if (moveDirection != Vector3.zero)
             {
-                Destroy(gameObject, magicData.duration);
+                transform.rotation = Quaternion.LookRotation(moveDirection);
             }
+
+            // ★ MagicData の duration (生存時間) を参照して自動消滅
+            float lifetime = (magicData != null && magicData.duration > 0f) ? magicData.duration : 3.0f;
+            Destroy(gameObject, lifetime);
         }
 
         private void Update()
         {
             if (magicData == null) return;
 
-            switch (magicData.movementType)
-            {
-                case MovementType.Straight:
-                case MovementType.Spread:
-                case MovementType.Split:
-                    MoveStraight();
-                    break;
-
-                case MovementType.Homing:
-                    MoveHoming();
-                    break;
-
-                case MovementType.Laser:
-                    UpdateLaser();
-                    break;
-
-                case MovementType.Boomerang:
-                    MoveBoomerang();
-                    break;
-            }
-        }
-
-        private void MoveStraight()
-        {
+            // 直進移動
             transform.position += moveDirection * magicData.projectileSpeed * Time.deltaTime;
-        }
-
-        private void MoveHoming()
-        {
-            if (Time.time - spawnTime >= homingDelay)
-            {
-                if (targetEnemy == null || !targetEnemy.gameObject.activeInHierarchy)
-                {
-                    targetEnemy = FindNearestEnemy();
-                }
-
-                if (targetEnemy != null)
-                {
-                    Vector3 targetDir = (targetEnemy.position - transform.position);
-                    targetDir.y = 0f;
-                    float distanceToTarget = targetDir.magnitude;
-                    targetDir.Normalize();
-
-                    float currentTurnSpeed = (distanceToTarget < 3.0f) ? 25f : 12f;
-
-                    moveDirection = Vector3.Slerp(moveDirection, targetDir, Time.deltaTime * currentTurnSpeed);
-                }
-            }
-
-            transform.position += moveDirection * magicData.projectileSpeed * Time.deltaTime;
-
-            if (moveDirection != Vector3.zero)
-            {
-                transform.rotation = Quaternion.LookRotation(moveDirection);
-            }
-        }
-
-        private void MoveBoomerang()
-        {
-            if (!isReturning && Time.time - spawnTime >= magicData.returnTime)
-            {
-                isReturning = true;
-            }
-
-            if (isReturning && ownerPlayer != null)
-            {
-                Vector3 targetPos = ownerPlayer.position;
-                targetPos.y = transform.position.y;
-
-                Vector3 returnDir = (targetPos - transform.position).normalized;
-                moveDirection = Vector3.Slerp(moveDirection, returnDir, Time.deltaTime * 8f);
-                transform.position += moveDirection * (magicData.projectileSpeed * magicData.returnSpeedMultiplier) * Time.deltaTime;
-
-                if (Vector3.Distance(new Vector3(transform.position.x, 0, transform.position.z),
-                                     new Vector3(ownerPlayer.position.x, 0, ownerPlayer.position.z)) < 0.8f)
-                {
-                    Destroy(gameObject);
-                }
-            }
-            else
-            {
-                MoveStraight();
-            }
-        }
-
-        private void UpdateLaser()
-        {
-            if (ownerPlayer != null)
-            {
-                transform.position = ownerPlayer.position + Vector3.up * 1f;
-                transform.rotation = ownerPlayer.rotation;
-            }
-            laserTimer += Time.deltaTime;
-        }
-
-        private Transform FindNearestEnemy()
-        {
-            GameObject[] enemies = GameObject.FindGameObjectsWithTag("Enemy");
-            GameObject nearest = null;
-            float minDistance = float.MaxValue;
-
-            foreach (GameObject enemy in enemies)
-            {
-                if (enemy == null) continue;
-                float dist = Vector3.Distance(transform.position, enemy.transform.position);
-                if (dist < minDistance)
-                {
-                    minDistance = dist;
-                    nearest = enemy;
-                }
-            }
-            return nearest != null ? nearest.transform : null;
-        }
-
-        private void OnTriggerStay(Collider other)
-        {
-            // ★ 安全保護：magicData または other が null の場合は処理しない
-            if (magicData == null || other == null) return;
-
-            if (magicData.movementType == MovementType.Laser && other.CompareTag("Enemy"))
-            {
-                if (laserTimer >= magicData.laserDamageInterval)
-                {
-                    laserTimer = 0f;
-                    ApplyDamage(other.gameObject);
-                }
-            }
         }
 
         private void OnTriggerEnter(Collider other)
         {
-            if (magicData == null || other == null) return;
-
-            if (other.CompareTag("Player") || other.CompareTag("Untagged") || other.GetComponent<MagicProjectile>() != null)
-            {
-                return;
-            }
-
             if (other.CompareTag("Enemy"))
             {
-                if (other.gameObject == lastHitEnemy) return;
-
-                ApplyDamage(other.gameObject);
-
-                if (magicData.movementType == MovementType.Split && remainingSplits > 0)
+                if (other.TryGetComponent<EnemyController>(out var enemy))
                 {
-                    SplitIntoFour(other.gameObject);
-                    Destroy(gameObject);
-                    return;
-                }
+                    float finalDamage = (magicData != null ? magicData.damage : 10f) * attackMultiplier;
+                    enemy.TakeDamage(finalDamage);
 
-                if (!magicData.piercesEnemy && magicData.movementType != MovementType.Laser)
-                {
-                    PlayHitVFX();
-                    Destroy(gameObject);
-                }
-            }
-            else if (other.CompareTag("Wall") && !magicData.piercesWall && magicData.movementType != MovementType.Laser)
-            {
-                PlayHitVFX();
-                Destroy(gameObject);
-            }
-        }
-
-        private void ApplyDamage(GameObject enemyObj)
-        {
-            if (enemyObj == null) return;
-
-            Debug.Log($"[Hit] {enemyObj.name} に {finalDamage} ダメージ！");
-
-            if (enemyObj.TryGetComponent<EnemyController>(out var enemy))
-            {
-                enemy.TakeDamage(finalDamage);
-            }
-
-            // プレイヤーの BuffHandler 取得とMapバフ判定
-            if (ownerPlayer != null && ownerPlayer.TryGetComponent<BuffHandler>(out var playerBuffs))
-            {
-                // 魔力循環 (MagicCirculation) コンボ更新
-                playerBuffs.OnMagicHitEnemy();
-
-                // 【呪術師の杖 (CurseStaff)】 敵にステータス低下デバフを付与
-                if (playerBuffs.HasBuff(BuffType.CurseStaff))
-                {
-                    if (enemyObj.TryGetComponent<BuffHandler>(out var enemyBuffs))
+                    // 敵の GameObject を引数として渡してバフ・デバフ（呪いの杖等）を伝播
+                    if (ownerPlayerBuffHandler != null)
                     {
-                        enemyBuffs.AddBuff(BuffType.EnemyStatDown, 0.2f, 5f);
+                        ownerPlayerBuffHandler.OnMagicHitEnemy(other.gameObject);
                     }
                 }
-            }
 
-            PlayHitVFX();
-        }
-
-        private void SplitIntoFour(GameObject hitEnemy)
-        {
-            if (magicData == null) return;
-
-            float[] angles = new float[] { 45f, 135f, 225f, 315f };
-
-            foreach (float angle in angles)
-            {
-                Quaternion rot = Quaternion.Euler(0f, angle, 0f);
-                Vector3 splitDir = rot * moveDirection;
-
-                GameObject subObj = Instantiate(gameObject, transform.position, Quaternion.LookRotation(splitDir));
-                if (subObj.TryGetComponent<MagicProjectile>(out var subProj))
+                if (magicData != null && magicData.hitEffectPrefab != null)
                 {
-                    subProj.Setup(magicData, splitDir, 1f, remainingSplits - 1, hitEnemy);
+                    Instantiate(magicData.hitEffectPrefab, transform.position, transform.rotation);
                 }
-            }
-        }
 
-        private void PlayHitVFX()
-        {
-            if (magicData == null) return;
-            if (magicData.hitEffectPrefab != null) Instantiate(magicData.hitEffectPrefab, transform.position, Quaternion.identity);
-            if (magicData.hitSound != null) AudioSource.PlayClipAtPoint(magicData.hitSound, transform.position);
+                Destroy(gameObject);
+            }
+            else if (other.CompareTag("Environment") || other.CompareTag("Wall"))
+            {
+                if (magicData != null && magicData.hitEffectPrefab != null)
+                {
+                    Instantiate(magicData.hitEffectPrefab, transform.position, transform.rotation);
+                }
+
+                Destroy(gameObject);
+            }
         }
     }
 }

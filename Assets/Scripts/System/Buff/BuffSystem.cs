@@ -5,8 +5,8 @@ namespace MagicRogue
 {
     public enum BuffTarget
     {
-        Self,   // 自分（プレイヤーまたは付与対象自身）
-        Enemy   // 敵（攻撃時などに相手へ付与）
+        Self,   // 自身（プレイヤーなど）
+        Enemy   // 敵（攻撃ヒット時等に敵側へ付与）
     }
 
     public enum BuffType

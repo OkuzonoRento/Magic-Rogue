@@ -20,8 +20,8 @@ namespace MagicRogue
         [SerializeField] private Button _cardButton;
 
         [Header("演出パラメータ")]
-        [SerializeField] private Vector3 _selectedScale = new Vector3(1.08f, 1.08f, 1.08f); // 選択/ホバー時の拡大
-        [SerializeField] private float _scaleAnimationSpeed = 12f; // アニメーション速度
+        [SerializeField] private Vector3 _selectedScale = new Vector3(1.08f, 1.08f, 1.08f);
+        [SerializeField] private float _scaleAnimationSpeed = 12f;
         [SerializeField] private Color _insufficientCreditColor = Color.red;
         [SerializeField] private float _insufficientCreditAlpha = 0.6f;
 
@@ -29,7 +29,7 @@ namespace MagicRogue
         private Action<BuffData, bool> _onToggleChanged;
         private Action<BuffCardUI> _onCardClickedCallback;
 
-        private bool _isGlobalMode = true; // Global(複数選択) か Map(単一選択) かのモードフラグ
+        private bool _isGlobalMode = true;
         private bool _isSelected = false;
         private bool _isDebuff = false;
 
@@ -38,15 +38,9 @@ namespace MagicRogue
 
         private void Update()
         {
-            // 毎フレーム目標サイズへ滑らかにスケーリング
             transform.localScale = Vector3.Lerp(transform.localScale, _targetScale, Time.deltaTime * _scaleAnimationSpeed);
         }
 
-        #region セットアップ
-
-        /// <summary>
-        /// 【Globalバフ用】トグル選択 & コスト計算あり
-        /// </summary>
         public void SetupGlobal(BuffData data, bool isDebuff, bool canAfford, Action<BuffData, bool> onToggleChanged)
         {
             _isGlobalMode = true;
@@ -70,9 +64,6 @@ namespace MagicRogue
             BindButton();
         }
 
-        /// <summary>
-        /// 【Mapバフ用】コスト表示なし & クリックで選択（決定ボタンで確定）
-        /// </summary>
         public void SetupMap(BuffData data, Action<BuffCardUI> onCardClickedCallback)
         {
             _isGlobalMode = false;
@@ -123,29 +114,20 @@ namespace MagicRogue
             }
         }
 
-        #endregion
-
-        #region イベント・表示更新
-
         private void OnCardClicked()
         {
             if (_isGlobalMode)
             {
-                // Globalバフ：トグル切り替え
                 _isSelected = !_isSelected;
                 UpdateVisual();
                 _onToggleChanged?.Invoke(_data, _isSelected);
             }
             else
             {
-                // Mapバフ：マネージャーへクリックイベントを通知
                 _onCardClickedCallback?.Invoke(this);
             }
         }
 
-        /// <summary>
-        /// 外部（マネージャー）から明示的に選択状態を設定する
-        /// </summary>
         public void SetSelected(bool selected)
         {
             _isSelected = selected;
@@ -183,13 +165,10 @@ namespace MagicRogue
                 _selectedHighlight.SetActive(_isSelected);
             }
 
-            // 選択されているときに拡大アニメーション
             _targetScale = _isSelected ? _selectedScale : Vector3.one;
         }
 
         public BuffData GetData() => _data;
         public bool IsSelected() => _isSelected;
-
-        #endregion
     }
 }
