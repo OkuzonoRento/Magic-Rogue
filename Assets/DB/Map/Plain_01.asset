@@ -17,10 +17,13 @@ MonoBehaviour:
   displayName: "\u5E73\u539F"
   model3DPrefab: {fileID: 5012261517174378115, guid: 101babc42f0e2a6458dcc4ae928c99f8, type: 3}
   description: 
+  mapStagePrefab: {fileID: 0}
+  playerSpawnPosition: {x: 0, y: 0, z: 0}
+  playerSpawnRotation: {x: 0, y: 0, z: 0}
   spawnableEnemies:
   - enemyPrefab: {fileID: 5729720823639832441, guid: c3e8952719357d34f9981f20d091c2f4, type: 3}
     spawnWeight: 40
   maxEnemyCount: 20
   spawnInterval: 3
   targetKillCount: 15
-  portalPrefab: {fileID: 0}
+  portalPrefab: {fileID: 1908686572446959100, guid: 1b6de52b7e246f041ab92dc820ae72ef, type: 3}
