@@ -40,7 +40,6 @@ namespace MagicRogue
         [SerializeField] private float _overlapSpacing = -20f;
         [SerializeField] private float _playerIconScale = 0.5f;
 
-        // ★ データではなく選択中の「ノード本体」と「マップデータ」を管理
         private MapSelectNode3D _currentlySelectedNode;
         private MapData _currentlySelectedMap;
 
@@ -356,7 +355,7 @@ namespace MagicRogue
 
         private void OnMapNodeClicked(MapSelectNode3D clickedNode, MapData selectedData)
         {
-            // ★【修正点】同じ「ノードオブジェクト」が再度押された場合のみキャンセル
+            // 同じノードオブジェクトが再度押された場合のみ選択解除
             if (_currentlySelectedNode == clickedNode)
             {
                 _currentlySelectedNode = null;
@@ -378,7 +377,7 @@ namespace MagicRogue
                 return;
             }
 
-            // ★ 新しいノード（または別のノード）を選択する場合
+            // 新しいノード（または別のノード）を選択する場合
             _currentlySelectedNode = clickedNode;
             _currentlySelectedMap = selectedData;
 
@@ -402,8 +401,7 @@ namespace MagicRogue
 
             if (GameSceneManager.Instance != null)
             {
-                GameSceneManager.Instance.SelectMap(_currentlySelectedMap.mapName, _currentlySelectedMap.mapType);
-                GameSceneManager.Instance.LoadSelectedMapScene();
+                GameSceneManager.Instance.SelectMap(_currentlySelectedMap);
             }
         }
 

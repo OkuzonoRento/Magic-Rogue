@@ -31,7 +31,7 @@ namespace MagicRogue
 
         [Header("カード生成設定")]
         [SerializeField] private Transform _cardContainer; // カード3枚を並べる親要素 (BuffContainer 等)
-        [SerializeField] private GameObject _cardPrefab;    // GlobalBuffCardUI 付きプレハブ
+        [SerializeField] private GameObject _cardPrefab;    // BuffCardUI 付きプレハブ
 
         [Header("ボタン類参照")]
         [SerializeField] private Button _rerollButton;
@@ -42,7 +42,7 @@ namespace MagicRogue
         [SerializeField] private List<BuffData> _availableDebuffs = new List<BuffData>();
 
         // 現在表示されている3枚のUI制御リスト
-        private readonly List<GlobalBuffCardUI> _spawnedCards = new List<GlobalBuffCardUI>();
+        private readonly List<BuffCardUI> _spawnedCards = new List<BuffCardUI>();
         private readonly List<BuffData> _currentDisplayedBuffs = new List<BuffData>();
 
         // 選択されたバフ/デバフの保持リスト
@@ -119,11 +119,11 @@ namespace MagicRogue
                 foreach (var buffData in _currentDisplayedBuffs)
                 {
                     GameObject cardObj = Instantiate(_cardPrefab, _cardContainer);
-                    if (cardObj.TryGetComponent<GlobalBuffCardUI>(out var cardUI))
+                    if (cardObj.TryGetComponent<BuffCardUI>(out var cardUI))
                     {
                         bool canAfford = isDebuff || (_currentCredit >= buffData.creditCost);
 
-                        cardUI.Setup(buffData, isDebuff, canAfford, OnCardToggleChanged);
+                        cardUI.SetupGlobal(buffData, isDebuff, canAfford, OnCardToggleChanged);
                         _spawnedCards.Add(cardUI);
                     }
                 }

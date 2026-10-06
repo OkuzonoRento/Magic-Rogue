@@ -16,7 +16,10 @@ namespace MagicRogue
         [Tooltip("説明文")]
         public string description;
 
-        [Header("コスト・タイプ設定")]
+        [Header("コスト・ターゲット設定")]
+        [Tooltip("バフの付与対象（Self: 自身 / Enemy: 攻撃対象の敵）")]
+        public BuffTarget targetType = BuffTarget.Self;
+
         [Tooltip("グローバルバフ選択時のコスト（クレジット）")]
         public int creditCost = 10;
 

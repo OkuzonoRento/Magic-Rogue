@@ -8,21 +8,17 @@ namespace MagicRogue
     {
         private readonly List<BuffInstance> activeBuffs = new List<BuffInstance>();
 
-        // Mapバフ用内部状態
         private PlayerController player;
         private Vector3 lastPosition;
         private float stationaryTimer = 0f;
         private float elapsedTime = 0f;
 
-        // 神仙へと至る道
         private int currentKills = 0;
         private bool isAscended = false;
 
-        // 聖なる守り
         private bool isShieldReady = true;
         private float shieldCooldownTimer = 0f;
 
-        // 魔力循環
         private int comboHits = 0;
         private float comboTimer = 0f;
 
@@ -35,10 +31,9 @@ namespace MagicRogue
         {
             lastPosition = transform.position;
 
-            // 神仙へと至る道 初期化
             if (HasBuff(BuffType.PathToAscension))
             {
-                AddBuff(BuffType.MagicSlotReduction, 99f, 99999f); // スロット制限
+                AddBuff(BuffType.MagicSlotReduction, 99f, 99999f);
             }
         }
 
@@ -47,7 +42,6 @@ namespace MagicRogue
             float deltaTime = Time.deltaTime;
             elapsedTime += deltaTime;
 
-            // 持続時間更新
             for (int i = activeBuffs.Count - 1; i >= 0; i--)
             {
                 var buff = activeBuffs[i];
@@ -59,36 +53,21 @@ namespace MagicRogue
                 }
             }
 
-            // 移動 / 静止監視（固定砲台用）
             float moveDist = Vector3.Distance(transform.position, lastPosition);
-            if (moveDist < 0.01f)
-            {
-                stationaryTimer += deltaTime;
-            }
-            else
-            {
-                stationaryTimer = 0f;
-            }
+            if (moveDist < 0.01f) stationaryTimer += deltaTime;
+            else stationaryTimer = 0f;
             lastPosition = transform.position;
 
-            // シールドCD更新
             if (!isShieldReady)
             {
                 shieldCooldownTimer -= deltaTime;
-                if (shieldCooldownTimer <= 0f)
-                {
-                    isShieldReady = true;
-                }
+                if (shieldCooldownTimer <= 0f) isShieldReady = true;
             }
 
-            // コンボタイマー更新
             if (comboHits > 0)
             {
                 comboTimer -= deltaTime;
-                if (comboTimer <= 0f)
-                {
-                    comboHits = 0;
-                }
+                if (comboTimer <= 0f) comboHits = 0;
             }
         }
 
@@ -101,20 +80,11 @@ namespace MagicRogue
         {
             float multiplier = 1.0f;
 
-            // 基本バフ計算
             foreach (var buff in activeBuffs)
             {
-                if (buff.type == positiveBuff)
-                {
-                    multiplier += buff.value;
-                }
-                else if (negativeBuff >= 0 && buff.type == negativeBuff)
-                {
-                    multiplier -= buff.value;
-                }
+                if (buff.type == positiveBuff) multiplier += buff.value;
+                else if (negativeBuff >= 0 && buff.type == negativeBuff) multiplier -= buff.value;
             }
-
-            // --- Mapバフによる各種動的計算 ---
 
             // 【攻撃力】
             if (positiveBuff == BuffType.AttackUp)
@@ -157,6 +127,13 @@ namespace MagicRogue
                 if (HasBuff(BuffType.FleshCut)) multiplier += 0.3f;
             }
 
+            // 【移動速度】
+            if (positiveBuff == BuffType.MoveSpeedUp)
+            {
+                if (HasBuff(BuffType.EnemyStatDown)) multiplier -= 0.15f; // 敵ステータス低下等の影響
+                if (HasBuff(BuffType.EnemyStatUp)) multiplier += 0.2f;
+            }
+
             // 【クールタイム】
             if (positiveBuff == BuffType.CooldownIncrease || positiveBuff == BuffType.CooldownReduction)
             {
@@ -190,10 +167,7 @@ namespace MagicRogue
             float total = 0f;
             foreach (var buff in activeBuffs)
             {
-                if (buff.type == type)
-                {
-                    total += buff.value;
-                }
+                if (buff.type == type) total += buff.value;
             }
             return total;
         }
@@ -202,21 +176,36 @@ namespace MagicRogue
         {
             float failChance = GetTotalValue(BuffType.ChanceToFail);
             if (failChance <= 0f) return false;
-
             return UnityEngine.Random.value < failChance;
         }
 
-        public bool HasBuff(BuffType type)
-        {
-            return activeBuffs.Exists(b => b.type == type);
-        }
+        public bool HasBuff(BuffType type) => activeBuffs.Exists(b => b.type == type);
+        public void ClearBuffsOfType(BuffType type) => activeBuffs.RemoveAll(b => b.type == type);
 
-        public void ClearBuffsOfType(BuffType type)
-        {
-            activeBuffs.RemoveAll(b => b.type == type);
-        }
+        #region イベント連動（敵へのバフ・デバフ伝播など）
 
-        #region 各種トリガーイベント
+        /// <summary>
+        /// 魔法が敵に命中した際に呼び出され、敵へデバフ（呪いの杖等）を付与
+        /// </summary>
+        public void OnMagicHitEnemy(GameObject targetEnemy)
+        {
+            if (HasBuff(BuffType.MagicCirculation))
+            {
+                comboHits++;
+                comboTimer = 2.5f;
+            }
+
+            // 呪術師の杖（敵のステータス低下・被ダメージ増を敵側BuffHandlerに付与）
+            if (HasBuff(BuffType.CurseStaff) && targetEnemy != null)
+            {
+                if (targetEnemy.TryGetComponent<BuffHandler>(out var enemyBuffs))
+                {
+                    enemyBuffs.AddBuff(BuffType.DamageReceivedUp, 0.2f, 5f);
+                    enemyBuffs.AddBuff(BuffType.MoveSpeedDown, 0.2f, 5f);
+                    Debug.Log($"[呪いの杖] {targetEnemy.name} にデバフを付与しました！");
+                }
+            }
+        }
 
         public bool OnPlayerTakeDamage()
         {
@@ -225,14 +214,10 @@ namespace MagicRogue
                 isShieldReady = false;
                 shieldCooldownTimer = 15f;
                 Debug.Log("[聖なる守り] 攻撃を無効化！");
-                return true; // ダメージ無効化
+                return true;
             }
 
-            if (HasBuff(BuffType.Vengeance))
-            {
-                AddBuff(BuffType.AttackUp, 0.3f, 5f);
-            }
-
+            if (HasBuff(BuffType.Vengeance)) AddBuff(BuffType.AttackUp, 0.3f, 5f);
             if (HasBuff(BuffType.FleshCut))
             {
                 AddBuff(BuffType.AttackUp, 0.4f, 5f);
@@ -244,19 +229,7 @@ namespace MagicRogue
 
         public void OnItemPickedUp()
         {
-            if (HasBuff(BuffType.GraveRobber))
-            {
-                AddBuff(BuffType.AttackUp, 0.25f, 6f);
-            }
-        }
-
-        public void OnMagicHitEnemy()
-        {
-            if (HasBuff(BuffType.MagicCirculation))
-            {
-                comboHits++;
-                comboTimer = 2.5f;
-            }
+            if (HasBuff(BuffType.GraveRobber)) AddBuff(BuffType.AttackUp, 0.25f, 6f);
         }
 
         public void RegisterKill()

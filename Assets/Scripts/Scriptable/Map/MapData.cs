@@ -46,6 +46,16 @@ namespace MagicRogue
         [Tooltip("選択画面で表示するマップの説明文")]
         public string description;
 
+        [Header("インゲーム生成設定")]
+        [Tooltip("インゲームで動的に生成するステージ（地形・ギミック）全体のプレハブ")]
+        public GameObject mapStagePrefab;
+
+        [Tooltip("プレイヤーの初期スポーン座標")]
+        public Vector3 playerSpawnPosition = Vector3.zero;
+
+        [Tooltip("プレイヤーの初期スポーン回転")]
+        public Vector3 playerSpawnRotation = Vector3.zero;
+
         [Header("スポーン設定")]
         [Tooltip("このマップに出現する敵とその確率リスト")]
         public List<EnemySpawnConfig> spawnableEnemies = new List<EnemySpawnConfig>();
