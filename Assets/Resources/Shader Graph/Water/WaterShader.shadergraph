@@ -2673,8 +2673,8 @@
     "m_ObjectId": "b84bccfaf3a44d0c82ecc3d82b35f117",
     "m_Title": "BaseColor",
     "m_Position": {
-        "x": -1313.0,
-        "y": -195.0
+        "x": -1312.9998779296875,
+        "y": -194.99998474121095
     }
 }
 
@@ -2708,7 +2708,7 @@
     "m_ObjectId": "bfa2441da8fd4b71aaeb18e23690e266",
     "m_Title": "Wave",
     "m_Position": {
-        "x": -1179.0,
+        "x": -1178.9998779296875,
         "y": -1145.0
     }
 }

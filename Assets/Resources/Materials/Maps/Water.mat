@@ -41,7 +41,7 @@ Material:
     m_Floats:
     - _Alpha: 1
     - _QueueControl: 0
-    - _RippleDensity: 8
+    - _RippleDensity: 16
     - _RippleSlimness: 3
     - _WavePower: 0.25
     - _WaveSpeed: 0.05
