@@ -103,8 +103,7 @@ namespace MagicRogue
         /// <summary> 4. マップバフ決定 → インゲーム開始へ </summary>
         public void ConfirmMapBuffsAndStartInGame()
         {
-            string targetScene = !string.IsNullOrEmpty(selectedMapName) ? selectedMapName : inGameSceneName;
-            ChangeSceneWithFade(targetScene);
+            ChangeSceneWithFade(inGameSceneName);
         }
 
         /// <summary> 5. インゲームクリア（ポータル到達） → ショップへ </summary>

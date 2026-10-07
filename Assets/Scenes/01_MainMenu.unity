@@ -589,13 +589,13 @@ MonoBehaviour:
   mainMenuSceneAsset: {fileID: 102900000, guid: 80af298955b8aa64784600c1c1b1675f, type: 3}
   globalBuffSelectSceneAsset: {fileID: 102900000, guid: 0d19b21532639dc4d9f2eb24f3cf9230, type: 3}
   mapSelectSceneAsset: {fileID: 102900000, guid: 7f5f497798691e5499bc71f9a698e732, type: 3}
-  mapBuffSelectSceneAsset: {fileID: 102900000, guid: 99c9720ab356a0642a771bea13969a05, type: 3}
+  mapBuffSelectSceneAsset: {fileID: 102900000, guid: e156ac4bc26458545a70e8638e2f77b5, type: 3}
   inGameSceneAsset: {fileID: 102900000, guid: 99c9720ab356a0642a771bea13969a05, type: 3}
   shopSceneAsset: {fileID: 102900000, guid: 70810be376c5e1040b0569e0916752dd, type: 3}
   mainMenuSceneName: 01_MainMenu
   globalBuffSelectSceneName: 02_GlobalBuffSelect
   mapSelectSceneName: 03_MapSelect
-  mapBuffSelectSceneName: 05_InGame
+  mapBuffSelectSceneName: 04_MapBuffSelect
   inGameSceneName: 05_InGame
   shopSceneName: 06_Shop
   selectedGlobalBuffs: []

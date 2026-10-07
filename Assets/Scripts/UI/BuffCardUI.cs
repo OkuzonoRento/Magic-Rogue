@@ -19,7 +19,7 @@ namespace MagicRogue
         [SerializeField] private CanvasGroup _mainCanvasGroup;
         [SerializeField] private Button _cardButton;
 
-        [Header("演出パラメータ")]
+        [Header("演出パラメータ (Globalと同様)")]
         [SerializeField] private Vector3 _selectedScale = new Vector3(1.08f, 1.08f, 1.08f);
         [SerializeField] private float _scaleAnimationSpeed = 12f;
         [SerializeField] private Color _insufficientCreditColor = Color.red;
@@ -38,7 +38,8 @@ namespace MagicRogue
 
         private void Update()
         {
-            transform.localScale = Vector3.Lerp(transform.localScale, _targetScale, Time.deltaTime * _scaleAnimationSpeed);
+            // ★ Time.unscaledDeltaTime を使用することで Time.timeScale = 0f であっても滑らかにアニメーションする
+            transform.localScale = Vector3.Lerp(transform.localScale, _targetScale, Time.unscaledDeltaTime * _scaleAnimationSpeed);
         }
 
         public void SetupGlobal(BuffData data, bool isDebuff, bool canAfford, Action<BuffData, bool> onToggleChanged)

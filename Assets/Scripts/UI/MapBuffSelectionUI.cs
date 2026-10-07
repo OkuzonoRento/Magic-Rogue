@@ -6,62 +6,90 @@ namespace MagicRogue
 {
     public class MapBuffSelectionUI : MonoBehaviour
     {
-        [Header("UI Reference")]
-        [SerializeField] private GameObject _panelObject;
-        [SerializeField] private BuffCardUI[] _cardUIList;
+        [Header("カード動的生成設定 (GlobalBuffSelectionUIと統一)")]
+        [SerializeField] private Transform _cardContainer;
+        [SerializeField] private GameObject _cardPrefab;
+
+        [Header("ボタン類参照")]
         [SerializeField] private Button _confirmButton;
 
-        [Header("Buff Database")]
+        [Header("マップバフデータベース")]
         [SerializeField] private List<BuffData> _mapBuffPool = new List<BuffData>();
 
+        private readonly List<BuffCardUI> _spawnedCards = new List<BuffCardUI>();
         private BuffCardUI _selectedCard = null;
 
         private void Start()
         {
-            if (_panelObject != null) _panelObject.SetActive(false);
-
             if (_confirmButton != null)
             {
                 _confirmButton.onClick.RemoveAllListeners();
                 _confirmButton.onClick.AddListener(OnConfirmButtonClicked);
             }
+
+            OpenSelectionUI();
         }
 
         public void OpenSelectionUI()
         {
-            if (_panelObject != null) _panelObject.SetActive(true);
-            Time.timeScale = 0f;
+            RenderSettings.fog = false;
 
             _selectedCard = null;
-            if (_confirmButton != null) _confirmButton.interactable = false;
 
-            List<BuffData> selectedBuffs = GetRandomMapBuffs(3);
-
-            for (int i = 0; i < _cardUIList.Length; i++)
+            if (_confirmButton != null)
             {
-                if (i < selectedBuffs.Count)
+                _confirmButton.interactable = false;
+            }
+
+            GenerateThreeCards();
+        }
+
+        private void GenerateThreeCards()
+        {
+            foreach (var card in _spawnedCards)
+            {
+                if (card != null) Destroy(card.gameObject);
+            }
+            _spawnedCards.Clear();
+
+            List<BuffData> selectedBuffs = GetRandomUniqueBuffs(_mapBuffPool, 3);
+
+            if (_cardContainer != null && _cardPrefab != null)
+            {
+                foreach (var buffData in selectedBuffs)
                 {
-                    _cardUIList[i].gameObject.SetActive(true);
-                    _cardUIList[i].SetupMap(selectedBuffs[i], OnCardSelected);
-                }
-                else
-                {
-                    _cardUIList[i].gameObject.SetActive(false);
+                    GameObject cardObj = Instantiate(_cardPrefab, _cardContainer);
+                    if (cardObj.TryGetComponent<BuffCardUI>(out var cardUI))
+                    {
+                        cardUI.SetupMap(buffData, OnCardSelected);
+                        _spawnedCards.Add(cardUI);
+                    }
                 }
             }
         }
 
         private void OnCardSelected(BuffCardUI clickedCard)
         {
-            _selectedCard = clickedCard;
-
-            foreach (var card in _cardUIList)
+            if (_selectedCard == clickedCard)
             {
-                bool isTarget = (card == clickedCard);
+                _selectedCard = null;
+            }
+            else
+            {
+                _selectedCard = clickedCard;
+            }
+
+            foreach (var card in _spawnedCards)
+            {
+                if (card == null) continue;
+                bool isTarget = (card == _selectedCard);
                 card.SetSelected(isTarget);
             }
 
-            if (_confirmButton != null) _confirmButton.interactable = true;
+            if (_confirmButton != null)
+            {
+                _confirmButton.interactable = (_selectedCard != null);
+            }
         }
 
         private void OnConfirmButtonClicked()
@@ -76,20 +104,19 @@ namespace MagicRogue
                 GameSceneManager.Instance.ToggleMapBuff(chosenBuff, true);
             }
 
-            if (_panelObject != null) _panelObject.SetActive(false);
-
             if (GameSceneManager.Instance != null)
             {
                 GameSceneManager.Instance.ConfirmMapBuffsAndStartInGame();
             }
         }
 
-        private List<BuffData> GetRandomMapBuffs(int count)
+        private List<BuffData> GetRandomUniqueBuffs(List<BuffData> sourceList, int count)
         {
-            List<BuffData> pool = new List<BuffData>(_mapBuffPool);
+            List<BuffData> pool = new List<BuffData>(sourceList);
             List<BuffData> result = new List<BuffData>();
 
-            for (int i = 0; i < count && pool.Count > 0; i++)
+            int pickCount = Mathf.Min(count, pool.Count);
+            for (int i = 0; i < pickCount; i++)
             {
                 int randomIndex = Random.Range(0, pool.Count);
                 result.Add(pool[randomIndex]);
