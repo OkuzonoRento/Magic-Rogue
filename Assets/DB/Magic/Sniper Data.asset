@@ -10,25 +10,25 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: eb784c7c03f5f9342abe0e77344d474e, type: 3}
-  m_Name: Spread Data
+  m_Name: Sniper Data
   m_EditorClassIdentifier: Assembly-CSharp::MagicRogue.MagicData
   itemId: 
   itemName: 
-  icon: {fileID: 941018614, guid: 8b5dab85cc8b0c4418295c33e1cbb8ab, type: 3}
+  icon: {fileID: 760769208, guid: 8b5dab85cc8b0c4418295c33e1cbb8ab, type: 3}
   rarity: 1
   customWorldModelPrefab: {fileID: 0}
-  buyPrice: 300
-  sellPrice: 150
+  buyPrice: 600
+  sellPrice: 300
   maxStackSize: 1
-  damage: 2
-  cooldown: 2
-  projectileSpeed: 20
+  damage: 5
+  cooldown: 3
+  projectileSpeed: 60
   duration: 5
   spawnType: 0
   movementType: 1
-  projectilePrefab: {fileID: 94684462530363271, guid: 61b1f269a221ff442ac501e4747ae47c, type: 3}
-  projectileCount: 5
-  spreadAngle: 40
+  projectilePrefab: {fileID: 94684462530363271, guid: 384942814981603408cd9da09bc593bb, type: 3}
+  projectileCount: 3
+  spreadAngle: 5
   maxSplitCount: 2
   splitSubProjectiles: 4
   laserDamageInterval: 0.2
@@ -38,5 +38,5 @@ MonoBehaviour:
   hitEffectPrefab: {fileID: 0}
   castSound: {fileID: 0}
   hitSound: {fileID: 0}
-  piercesEnemy: 0
-  piercesWall: 0
+  piercesEnemy: 1
+  piercesWall: 1
