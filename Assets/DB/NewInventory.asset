@@ -12,14 +12,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0de46358483b2f74cadc487621a98739, type: 3}
   m_Name: NewInventory
   m_EditorClassIdentifier: Assembly-CSharp::MagicRogue.InventorySO
-  coins: 1004
+  coins: 0
   spellSlots:
-  - {fileID: 11400000, guid: 84d94b946f451c14aa89c938715e4cf6, type: 2}
-  - {fileID: 11400000, guid: e986d233683769243837c192a3ef6c82, type: 2}
-  - {fileID: 11400000, guid: 84d94b946f451c14aa89c938715e4cf6, type: 2}
+  - {fileID: 11400000, guid: e8cfb20c3332d3b40afd02acb2f11968, type: 2}
+  - {fileID: 0}
+  - {fileID: 0}
   inventorySlots:
-  - itemData: {fileID: 11400000, guid: ce1f8fe535a38294d86c026334a53e7b, type: 2}
-    amount: 26
+  - itemData: {fileID: 0}
+    amount: 0
   - itemData: {fileID: 0}
     amount: 0
   - itemData: {fileID: 0}

@@ -2483,8 +2483,10 @@ MonoBehaviour:
   playerInventory: {fileID: 11400000, guid: 074ead8f3f011e8479c0390c41031f7f, type: 2}
   availableShopMagics:
   - {fileID: 11400000, guid: e8cfb20c3332d3b40afd02acb2f11968, type: 2}
-  - {fileID: 11400000, guid: e8cfb20c3332d3b40afd02acb2f11968, type: 2}
-  - {fileID: 11400000, guid: e8cfb20c3332d3b40afd02acb2f11968, type: 2}
+  - {fileID: 11400000, guid: 52dc6d838baa26a4d86181f88ede5093, type: 2}
+  - {fileID: 11400000, guid: e986d233683769243837c192a3ef6c82, type: 2}
+  - {fileID: 11400000, guid: c83c89e698d63f74896f1fb8dec6da39, type: 2}
+  - {fileID: 11400000, guid: 84d94b946f451c14aa89c938715e4cf6, type: 2}
   inventoryGridParent: {fileID: 525368358}
   attackGridParent: {fileID: 1097865565}
   coinText: {fileID: 1608524758}
@@ -2509,7 +2511,6 @@ MonoBehaviour:
   buyColor: {r: 1, g: 0, b: 0, a: 1}
   sellColor: {r: 0.017354928, g: 0.735849, b: 0.09750575, a: 1}
   defaultPriceColor: {r: 0, g: 0, b: 0, a: 0.5019608}
-  nextSceneName: 03_MapSelect
 --- !u!4 &1530331144
 Transform:
   m_ObjectHideFlags: 0

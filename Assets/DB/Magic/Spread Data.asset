@@ -15,14 +15,14 @@ MonoBehaviour:
   itemId: 
   itemName: 
   icon: {fileID: 941018614, guid: 8b5dab85cc8b0c4418295c33e1cbb8ab, type: 3}
-  rarity: 0
+  rarity: 1
   customWorldModelPrefab: {fileID: 0}
   buyPrice: 100
   sellPrice: 50
   maxStackSize: 1
   damage: 2
-  cooldown: 1.25
-  projectileSpeed: 15
+  cooldown: 2
+  projectileSpeed: 20
   duration: 5
   spawnType: 0
   movementType: 1

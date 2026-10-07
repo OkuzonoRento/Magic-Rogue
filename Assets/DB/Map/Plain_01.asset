@@ -25,5 +25,5 @@ MonoBehaviour:
     spawnWeight: 40
   maxEnemyCount: 20
   spawnInterval: 3
-  targetKillCount: 0
+  targetKillCount: 30
   portalPrefab: {fileID: 5303257763230279889, guid: c9445cb972d48744eaaa75f565b0ce0a, type: 3}

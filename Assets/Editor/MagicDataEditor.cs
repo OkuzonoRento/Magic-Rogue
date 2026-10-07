@@ -16,6 +16,8 @@ namespace MagicRogue
             EditorGUILayout.PropertyField(serializedObject.FindProperty("itemName"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("icon"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("rarity"));
+            // Åö í«â¡: buyPrice ÇÃï`âÊÇí«â¡
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("buyPrice"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("sellPrice"));
 
             EditorGUILayout.Space(10);

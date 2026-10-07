@@ -17,12 +17,12 @@ MonoBehaviour:
   icon: {fileID: 987452940, guid: 8b5dab85cc8b0c4418295c33e1cbb8ab, type: 3}
   rarity: 0
   customWorldModelPrefab: {fileID: 0}
-  buyPrice: 100
-  sellPrice: 50
+  buyPrice: 500
+  sellPrice: 250
   maxStackSize: 1
-  damage: 3
+  damage: 1
   cooldown: 1
-  projectileSpeed: 15
+  projectileSpeed: 25
   duration: 5
   spawnType: 0
   movementType: 0
