@@ -15,7 +15,7 @@ MonoBehaviour:
   itemId: 
   itemName: 
   icon: {fileID: 563361432, guid: 8b5dab85cc8b0c4418295c33e1cbb8ab, type: 3}
-  rarity: 3
+  rarity: 2
   customWorldModelPrefab: {fileID: 0}
   buyPrice: 500
   sellPrice: 250
